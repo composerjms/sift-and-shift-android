@@ -813,6 +813,8 @@ table.kvt td.n { text-align: left; }
 .of-load { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; margin-right: 12px; }
 .of-runs { border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
 .of-runs th, .of-runs td { padding: 3px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+.office-tools { display: inline-flex; gap: 6px; margin-left: auto; margin-right: 6px; } .office-code { display: grid; gap: 6px; }
+.office-code textarea { width: 100%; font-family: var(--f-mono); font-size: 0.72rem; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 8px; }
 #officeBox.between { position: fixed; inset: 0; z-index: 55; overflow-y: auto; border-radius: 0; align-content: start; }
 .of-start { border-color: var(--gold); display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .of-copy { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 12.5px; }
@@ -922,7 +924,9 @@ table.kvt td.n { text-align: left; }
   </section>
 
   <section class="savebox" id="officeBox" hidden aria-labelledby="officeTitle">
-    <div class="savehead"><h2 id="officeTitle">The Office</h2><button class="btn" id="officeClose">Close</button></div>
+    <div class="savehead"><h2 id="officeTitle">The Office</h2><span class="office-tools" id="officeTools" hidden><button class="btn" type="button" id="officeCode">Save code</button><button class="btn" type="button" id="officeLog">This run's log</button></span><button class="btn" id="officeClose">Close</button></div>
+    <div id="officeCodeBox" hidden class="office-code"><p class="note">The whole game as a code (the Office included). Copy it, or save it as a file.</p><textarea id="officeCodeText" rows="4" readonly spellcheck="false" aria-label="Save code"></textarea>
+      <div class="foot-btns"><button class="btn" type="button" id="officeCodeCopy">Copy</button><button class="btn" type="button" id="officeCodeDl">Save as a file</button><span class="note" id="officeCodeMsg"></span></div></div>
     <div id="officeBody"></div>
   </section>
   <section class="savebox" id="creditsBox" hidden aria-labelledby="creditsTitle">
@@ -10174,7 +10178,24 @@ function officeBetween(on) {   // open (or close) the Office as the stop between
   const box = document.getElementById("officeBox"); officeBreak = on;
   if (box) { box.classList.toggle("between", on); box.hidden = !on; }
   document.getElementById("officeClose").hidden = on;
-  if (on) { if (watching && window.setWatch) window.setWatch(false); renderOffice(); if (box) box.scrollTop = 0; }
+  { const t = document.getElementById("officeTools"); if (t) t.hidden = !on; const cb = document.getElementById("officeCodeBox"); if (cb && !on) cb.hidden = true; }   // v9: between runs, the save code and the log are reachable from the Office
+  if (on) { officeToolsInit(); if (watching && window.setWatch) window.setWatch(false); renderOffice(); if (box) box.scrollTop = 0; }
+}
+function officeToolsInit() {   // v9: save code and this run's log from the Office (the rest of the game is behind it between runs)
+  const $o = (id) => document.getElementById(id); if (!$o("officeCode") || $o("officeCode").dataset.on) return; $o("officeCode").dataset.on = "1";
+  const msg = (t) => { $o("officeCodeMsg").textContent = t; };
+  $o("officeCode").onclick = () => { const b = $o("officeCodeBox"); b.hidden = !b.hidden; if (!b.hidden) { save(); $o("officeCodeText").value = makeCode(); msg(""); } };
+  $o("officeCodeCopy").onclick = async () => { try { await navigator.clipboard.writeText($o("officeCodeText").value); msg("Copied."); } catch (e) { $o("officeCodeText").select(); msg("Select it and copy."); } };
+  $o("officeCodeDl").onclick = async () => { const name = `slot${curSlot}-${supSlug()}-p${logPromo()}-office.txt`; msg((await downloadText(name, $o("officeCodeText").value)) ? "Saved." : "Couldn't save here: copy it instead."); };
+  $o("officeLog").onclick = async () => { logFlush();
+    if (desk && desk.openLogsFolder) { try { desk.openLogsFolder(); } catch (e) {} return; }   // the PC: the files are already in the logs folder
+    const all = (await idbList()).filter(k => k.startsWith(`slot${curSlot}-${supSlug()}-p`) && k.endsWith(".log"));
+    const pOf = (k) => +((/-p(\d+)-/.exec(k) || [])[1] || 0), top = all.reduce((m, k) => Math.max(m, pOf(k)), -1);   // between runs: the run that just ended
+    const keys = all.filter(k => pOf(k) === top).sort();
+    if (!keys.length) { toast("No log for this run yet."); return; }
+    const text = (await Promise.all(keys.map(k => idbGet(k)))).join("");
+    downloadText(keys.length === 1 ? keys[0] : `slot${curSlot}-${supSlug()}-p${top}-all-days.log`, text);
+  };
 }
 function officeStartRun() {   // leave the Office: the new run's contract 1 begins with the furniture as it now stands
   const O = officeS(); if (!O.between) return;
