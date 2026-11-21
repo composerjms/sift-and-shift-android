@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sift &amp; Shift</string>
+    <string name="title_activity_main">Sift &amp; Shift</string>
+    <string name="package_name">com.composerjms.siftandshift</string>
+    <string name="custom_url_scheme">com.composerjms.siftandshift</string>
+</resources>
