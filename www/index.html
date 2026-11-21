@@ -1640,7 +1640,7 @@ function milestoneSave() {
   }
   const nm = `slot${curSlot}-${supSlug()}-p${logPromo()}-after-c${done}.txt`;
   if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {   // v9 Android app: kept quietly with the test logs; share any of them from Stats → Admin → Test logs
-    try { idbAppend(nm, makeCode()); toast(`Milestone save: contract ${done} done. It's kept with the test logs (Stats → Admin → Test logs).`); } catch (e) {}
+    try { const code = makeCode(); idbAppend(nm, code); appFileAppend("saves/" + nm, code, true); toast(`Milestone save: contract ${done} done. It's in Documents/SiftAndShift/saves (and Stats → Admin → Test logs).`); } catch (e) {}
     return;
   }
   try { downloadText("sift-shift-" + nm, makeCode()).then(ok => { if (ok) toast(`Milestone save: contract ${done} done, code downloaded.`); }); } catch (e) {}
@@ -10377,6 +10377,19 @@ function logEv(e, o) {
   logBuf.push([name, JSON.stringify(Object.assign(base, o || {}))]);
   if (logBuf.length > 400) logFlush();
 }
+// v9 Android app: logs and milestone saves are also written as real files in Documents/SiftAndShift (logs/ and saves/),
+// so they can be picked up with the Files app or over USB, like the PC's saves folder. The browser copy stays as a backup.
+const capP = () => (typeof window !== "undefined" && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins) || null;
+let appFileChain = Promise.resolve(), appFileState = "";
+function appFileAppend(rel, text, replace) {
+  const P = capP(); if (!P || !P.Filesystem) return;
+  appFileChain = appFileChain.then(async () => {
+    const path = "SiftAndShift/" + rel;
+    try { await P.Filesystem.mkdir({ path: path.replace(/\/[^/]*$/, ""), directory: "DOCUMENTS", recursive: true }); } catch (e) {}   // already there is fine
+    try { await (replace ? P.Filesystem.writeFile : P.Filesystem.appendFile)({ path, data: text, directory: "DOCUMENTS", encoding: "utf8" }); appFileState = "ok"; }
+    catch (e) { appFileState = "failed: " + ((e && e.message) || e); }
+  });
+}
 function logFlush() {
   if (!logBuf.length) return;
   const by = {}; for (const [n, l] of logBuf) (by[n] = by[n] || []).push(l);
@@ -10385,7 +10398,7 @@ function logFlush() {
     const text = by[n].join("\n") + "\n";
     let ok = false;
     try { if (desk && desk.appendLog) { ok = !!desk.appendLog(n, text) || !!desk.appendLog(n.replace(/^(slot\d+)-.*-p\d+-/, "$1-"), text); if (!ok) logStat.fails++; } } catch (e) { logStat.fails++; }   // an older Windows player only takes slotN-date.log
-    if (!ok) idbAppend(n, text);
+    if (!ok) { idbAppend(n, text); appFileAppend("logs/" + n, text); }
     logStat.lines += by[n].length; logStat.bytes += text.length; logStat.where = ok ? "file" : "browser storage";
     { const d = new Date(); logStat.last = `${two(d.getHours())}:${two(d.getMinutes())}:${two(d.getSeconds())}`; }
   }
@@ -10440,7 +10453,7 @@ function buildLogBox() {
 }
 function updateLogBox() {   // this session's writing, so a stuck log shows up right away
   const el = document.getElementById("logStat"); if (!el) return;
-  el.textContent = logStat.lines ? `This session: ${fmt(logStat.lines)} lines (${(logStat.bytes / 1024).toFixed(0)} KB) written to ${logStat.where}, last at ${logStat.last}${logStat.fails ? ` · ${logStat.fails} file write${logStat.fails > 1 ? "s" : ""} failed (kept in browser storage instead)` : ""}. ${fmt(logBuf.length)} waiting for the next save.` : "Nothing written yet this session.";
+  el.textContent = logStat.lines ? `This session: ${fmt(logStat.lines)} lines (${(logStat.bytes / 1024).toFixed(0)} KB) written to ${logStat.where}${appFileState ? (appFileState === "ok" ? " and Documents/SiftAndShift/logs" : ` (the Documents copy ${appFileState})`) : ""}, last at ${logStat.last}${logStat.fails ? ` · ${logStat.fails} file write${logStat.fails > 1 ? "s" : ""} failed (kept in browser storage instead)` : ""}. ${fmt(logBuf.length)} waiting for the next save.` : "Nothing written yet this session.";
 }
 
 function boot(data) {
