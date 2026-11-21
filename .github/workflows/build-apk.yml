@@ -23,8 +23,7 @@ jobs:
         with:
           node-version: '20'
 
-      - uses: android-actions/setup-android@v3
-
+      # GitHub's Ubuntu runners already have the Android SDK (ANDROID_HOME), so no extra setup step
       - name: Install and sync Capacitor
         run: |
           npm ci
