@@ -1638,7 +1638,12 @@ function milestoneSave() {
       if (ok !== false) toast(`Milestone save: contract ${done} done. It's in the saves folder (Menu → Open saves folder).`); } catch (e) {}
     return;
   }
-  try { downloadText(`sift-shift-slot${curSlot}-${supSlug()}-p${logPromo()}-after-c${done}.txt`, makeCode()).then(ok => { if (ok) toast(`Milestone save: contract ${done} done, code downloaded.`); }); } catch (e) {}
+  const nm = `slot${curSlot}-${supSlug()}-p${logPromo()}-after-c${done}.txt`;
+  if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {   // v9 Android app: kept quietly with the test logs; share any of them from Stats → Admin → Test logs
+    try { idbAppend(nm, makeCode()); toast(`Milestone save: contract ${done} done. It's kept with the test logs (Stats → Admin → Test logs).`); } catch (e) {}
+    return;
+  }
+  try { downloadText("sift-shift-" + nm, makeCode()).then(ok => { if (ok) toast(`Milestone save: contract ${done} done, code downloaded.`); }); } catch (e) {}
 }
 // ---------- unlocks and the supervisor's daily reports ----------
 const unlocked = (k) => !!(S.unl && (S.unl.all || S.unl[k]));
