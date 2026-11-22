@@ -1257,7 +1257,7 @@ const BAL = {
   hireMaps: 400,              // autoplay's hire scores: every map of this contract so far, dig phase only (Nov 16; was the last 3 maps, dig and mop-up)
   autoSpeedFrame: 1 / 30,     // Auto speed aims for about 30 frames a second
   autoSpeedMapFloor: 50,
-  autoLearnWeight: 0.35, autoLearnCreep: 2,   // v9: how much a map's latest ending speed moves what it has learned; how far a smooth map creeps up      // Nov 18: each new map climbs back to at least this, so one wall map doesn't drag the rest of the contract down
+  autoSpeedMax: 400,   // v9: how much a map's latest ending speed moves what it has learned; how far a smooth map creeps up      // Nov 18: each new map climbs back to at least this, so one wall map doesn't drag the rest of the contract down
   starXPCurve: 0.017, starXPFrom: 10,   // star XP ramp: past 10★, levels at star s cost ×e^(curve·(s−from)²) more (×1.5 at 15★, ×4.6 at 20★, ×46 at 25★)
 };
 // ===================================================================
@@ -1343,17 +1343,21 @@ let autoSpeed = false, frameEMA = 1 / 60, apAcc = 0, autoSlowFor = 0, autoCutAt 
 // v9 Auto speed learns: each map number remembers the speed it ended at (a running average, kept per computer, not in the save),
 // and the next time that map comes up it starts there. A map that ends where it started, with no cuts, creeps up 2× next time.
 let autoLearn = null, autoMapStart = 0, autoMapCuts = 0, autoMapAll = false;
-function autoLearned() { if (autoLearn) return autoLearn; try { autoLearn = JSON.parse(localStorage.getItem("siftshift-autolearn") || "{}") || {}; } catch (e) { autoLearn = {}; } return autoLearn; }
-function autoLearnSave() { try { localStorage.setItem("siftshift-autolearn", JSON.stringify(autoLearn || {})); } catch (e) {} }
-function autoSpeedStart(m) {   // the starting speed for map m: what it learned, or the old rule (100× for map 1 of a contract, at least 50× after)
+// v9 (Nov 21) Auto speed learns a TOTAL rate per map (speed button × achievement game speed = game seconds per real second),
+// kept per computer. A map starts at its learned rate, whatever the achievements are worth right now. If it gets through the
+// map without slowing, next time it starts one notch faster; if it had to slow, next time it starts where it ended.
+// The button can go above 100× while Auto is on (up to BAL.autoSpeedMax).
+function autoLearned() { if (autoLearn) return autoLearn; try { autoLearn = JSON.parse(localStorage.getItem("siftshift-autorate") || "{}") || {}; } catch (e) { autoLearn = {}; } return autoLearn; }
+function autoLearnSave() { try { localStorage.setItem("siftshift-autorate", JSON.stringify(autoLearn || {})); } catch (e) {} }
+function autoSpeedStart(m) {   // the starting speed for map m: its learned rate turned into a button speed now, or the old rule for a map it hasn't seen
   const L = autoLearned()[m];
-  speed = L ? Math.max(1, Math.min(100, Math.round(L))) : m <= 1 ? 100 : Math.max(speed, BAL.autoSpeedMapFloor);
+  speed = L ? Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(L / achSpeed()))) : m <= 1 ? 100 : Math.max(Math.min(speed, 100), BAL.autoSpeedMapFloor);
   frameEMA = BAL.autoSpeedFrame; autoSlowFor = 0; autoMapStart = speed; autoMapCuts = 0; autoMapAll = true;
 }
-function autoSpeedLearn(m) {   // a map is finished: fold its ending speed into what that map number has learned
+function autoSpeedLearn(m) {   // a map is finished: clean run → one notch faster next time; slowed → start where it ended
   if (!autoSpeed || !autoMapAll || S.trial) return;
-  const A = autoLearned(), old = A[m], end = autoMapCuts === 0 && speed >= autoMapStart ? Math.min(100, speed + BAL.autoLearnCreep) : speed;
-  A[m] = +(old == null ? end : old * (1 - BAL.autoLearnWeight) + end * BAL.autoLearnWeight).toFixed(1); autoLearnSave();
+  const a = achSpeed(), clean = autoMapCuts === 0 && speed >= autoMapStart;
+  autoLearned()[m] = +((Math.min(BAL.autoSpeedMax, clean ? speed + 1 : speed)) * a).toFixed(1); autoLearnSave();
 }
 function autoSpeedMap() { if (!autoSpeed) return; autoSpeedStart(S.map); }
 function autoSpeedReset() { if (!autoSpeed) return; autoSpeedStart(1); }   // a new contract (or run) starts at map 1's speed
@@ -3467,7 +3471,7 @@ function logMap(time) {
   const buys = {}; for (const b of mapBuys) buys[b] = (buys[b] || 0) + 1;
   S.log.push({
     contract: S.contract.n + 1, dust_mult: +S.contract.dustMult.toFixed(3), slots_per_base: perBase(), max_star: Math.max(1, ...S.tools.map(t => t.star)), fused: S.fused,
-    map: S.map, board: W + "x" + H, lucky: S.lucky.reduce((a, v) => a + v, 0), game_s: Math.round(time), spd: autoSpeed ? "auto " + speed : speed, spd0: autoSpeed ? autoMapStart : undefined, clear_s: Math.round(S.clearAt - S.mapStart), recall_s: Math.round(S.gameTime - S.clearAt), real_s: Math.round(mapReal), autoplay: mapAuto ? 1 : 0, money_end: Math.round(S.money), train: S.up.train, mentor: S.up.mentor, xp_mult: +xpMult().toFixed(3), sale: S.up.sale, canCap: S.up.canCap,
+    map: S.map, board: W + "x" + H, lucky: S.lucky.reduce((a, v) => a + v, 0), game_s: Math.round(time), spd: autoSpeed ? "auto " + speed : speed, spd0: autoSpeed ? autoMapStart : undefined, rate: +(speed * achSpeed()).toFixed(1), clear_s: Math.round(S.clearAt - S.mapStart), recall_s: Math.round(S.gameTime - S.clearAt), real_s: Math.round(mapReal), autoplay: mapAuto ? 1 : 0, money_end: Math.round(S.money), train: S.up.train, mentor: S.up.mentor, xp_mult: +xpMult().toFixed(3), sale: S.up.sale, canCap: S.up.canCap,
     cans: S.tools.filter(t => t.base >= 0).reduce((a, t) => a + t.cans, 0),
     S_haul: pct(mapAcc.single, "haul"), M_haul: pct(mapAcc.multi, "haul"),
     SS_dig: pct(mapAcc.ssweep, "work"), SS_idle: pct(mapAcc.ssweep, "idle"), SR_level: pct(mapAcc.srake, "rake"), SR_dig: pct(mapAcc.srake, "sweep"), SR_idle: pct(mapAcc.srake, "idle"),
@@ -7703,7 +7707,7 @@ function wire() {
   const seg = document.getElementById("speedSeg");
   [1, 2, 5, 10, 25, 100, "auto"].forEach(x => {
     const b = document.createElement("button"); b.textContent = x === "auto" ? "Auto" : x + "×"; b.setAttribute("aria-pressed", x === speed);
-    if (x === "auto") { b.id = "autoSpdBtn"; b.title = "Eases down 1× at a time if the screen can't keep up, and never speeds up during a map. It learns: each map number remembers the speed it ended at on this computer and starts there next time (a map that never had to slow down starts a little faster next time). Maps it hasn't seen yet start at 100× for a contract's first map, otherwise at least 50×. Settings has a button to forget what it learned."; }
+    if (x === "auto") { b.id = "autoSpdBtn"; b.title = "Eases down 1× at a time if the screen can't keep up, and never speeds up during a map. It learns, per map number and per computer, the total rate that map can run at (the speed button × achievement game speed), and starts there next time, so the button can go above 100×. A map that got through without slowing starts one notch faster next time; one that slowed starts where it ended. Maps it hasn't seen yet start at 100× for a contract's first map, otherwise at least 50×. Settings has a button to forget what it learned."; }
     b.addEventListener("click", () => { autoSpeed = x === "auto"; if (!autoSpeed) speed = x; else autoSpeedStart(S.map); autoMapAll = false; /* switched on mid-map: this map isn't learned from */ seg.querySelectorAll("button").forEach(o => o.setAttribute("aria-pressed", o === b));
       try { localStorage.setItem("siftshift-speed", String(x)); } catch (e) {} });   // Nov 17: the speed choice (Auto included) survives a restart
     seg.appendChild(b);
@@ -10153,7 +10157,7 @@ function promote() {
   const O = officeS(), got = promoPts(), c = contractsSigned(); let h = 0; try { h = housesDone(); } catch (e) {}
   if (mgOpen) MG.close();
   logEv("promo", { done: c, houses: h, pts: got, overtime: overtimeMaps(), promo: O.promos + 1, ach: achCount(), gspd: +achSpeed().toFixed(3) });
-  { const A = autoLearned(); if (Object.keys(A).length) logEv("autolearn", { maps: A }); }   // v9: what Auto speed had learned by this promotion, map by map
+  { const A = autoLearned(); if (Object.keys(A).length) logEv("autolearn", { unit: "rate", maps: A }); }   // v9: what Auto speed had learned by this promotion, map by map
   O.pts += got; O.promos++; O.best = Math.max(O.best, c); O.respecs = 0; O.v++;
   O.playTotal = (O.playTotal || 0) + (S.playTime || 0);
   O.runs.push({ promo: O.promos, c, houses: h, pts: got, game: Math.round(S.gameTime || 0), play: Math.round(S.playTime || 0), at: new Date().toISOString() });
