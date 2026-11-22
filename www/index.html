@@ -1346,7 +1346,7 @@ let speed = 1, paused = false, showPct = false, mgOpen = false;
 let autoSpeed = false, frameEMA = 1 / 60, apAcc = 0, autoSlowFor = 0, autoCutAt = 0;
 // v9 Auto speed learns: each map number remembers the speed it ended at (a running average, kept per computer, not in the save),
 // and the next time that map comes up it starts there. A map that ends where it started, with no cuts, creeps up 2× next time.
-let autoLearn = null, autoMapStart = 0, autoMapCuts = 0, autoMapAll = false, autoFastFor = 0;
+let autoLearn = null, autoMapStart = 0, autoMapCuts = 0, autoMapAll = false, autoFastFor = 0, autoMapFt = 0, autoMapFr = 0;   // Nov 22: frame time and frames since the map started (or its last cut)
 // v9 (Nov 21) Auto speed learns a TOTAL rate per map (speed button × achievement game speed = game seconds per real second),
 // kept per computer. A map starts at its learned rate, whatever the achievements are worth right now. If it gets through the
 // map without slowing, next time it starts one notch faster; if it had to slow, next time it starts where it ended.
@@ -1356,12 +1356,16 @@ function autoLearnSave() { try { localStorage.setItem("siftshift-autorate", JSON
 function autoSpeedStart(m) {   // the starting speed for map m: its learned rate turned into a button speed now, or the old rule for a map it hasn't seen
   const L = autoLearned()[m];
   speed = L ? Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(L / achSpeed()))) : Math.max(speed, 100);   // a map it hasn't seen starts at 100× or the speed it carried in, whichever is higher, and climbs from there
-  frameEMA = BAL.autoSpeedFrame; autoSlowFor = 0; autoFastFor = 0; autoMapStart = speed; autoMapCuts = 0; autoMapAll = true;
+  frameEMA = BAL.autoSpeedFrame; autoSlowFor = 0; autoFastFor = 0; autoMapStart = speed; autoMapCuts = 0; autoMapAll = true; autoMapFt = 0; autoMapFr = 0;
 }
 function autoSpeedLearn(m) {   // a map is finished: clean run → one notch faster next time; slowed → start where it ended
   if (!autoSpeed || !autoMapAll || S.trial) return;
-  const a = achSpeed(), clean = autoMapCuts === 0 && speed >= autoMapStart;
-  autoLearned()[m] = +((Math.min(BAL.autoSpeedMax, clean ? speed + 1 : speed)) * a).toFixed(1); autoLearnSave();
+  // Nov 22: judge the map as a whole too. Short maps can end before a cut has time to happen, so a map whose
+  // average frame (since its last cut) ran slow saves a lower speed in proportion, and only an on-target map counts as clean
+  const a = achSpeed(), T = BAL.autoSpeedFrame, avg = autoMapFr >= 2 ? autoMapFt / autoMapFr : autoMapCuts ? frameEMA : T,   /* too few frames since the last cut: go by the running average */ slow = avg > T * 1.25;
+  const clean = !slow && autoMapCuts === 0 && speed >= autoMapStart;
+  const s = slow ? Math.max(1, Math.floor(speed * Math.max(0.25, Math.sqrt(T / avg)))) : clean ? speed + 1 : speed;
+  autoLearned()[m] = +(Math.min(BAL.autoSpeedMax, s) * a).toFixed(1); autoLearnSave();
 }
 function autoSpeedMap() { if (!autoSpeed) return; autoSpeedStart(S.map); }
 function autoSpeedReset() { if (!autoSpeed) return; autoSpeedStart(1); }   // a new contract (or run) starts at map 1's speed
@@ -8486,9 +8490,9 @@ function frame(now) {
   const mainLive = !paused && inGame && !summaryOpen && !mgOpen && !officeBreak;   // Nov 20: Auto speed only judges frames while the main game is actually running
   if (autoSpeed && !mainLive) { frameEMA = BAL.autoSpeedFrame; autoSlowFor = 0; autoFastFor = 0; autoCutAt = now + 1000; }   // Break room, cards, the Office: no cuts, and a second's grace after
   if (autoSpeed && mainLive) {   // Nov 17: each contract starts at 100× and only ever eases down: once slower, it stays slower until the next contract
-    if (rawDt < 0.5) frameEMA = frameEMA * 0.9 + rawDt * 0.1;   // a stalled frame (tab hidden, a save) doesn't count
+    const fdt = Math.min(rawDt, 0.5); frameEMA = frameEMA * 0.9 + fdt * 0.1; autoMapFt += fdt; autoMapFr++;   // Nov 22: slow frames count (capped at half a second) instead of being skipped
     autoSlowFor = frameEMA > BAL.autoSpeedFrame * 1.25 ? autoSlowFor + Math.min(rawDt, 0.5) : 0;
-    if (autoSlowFor > 1.5 && now - autoCutAt > 500) { speed = Math.max(1, speed - 1); autoCutAt = now; autoSlowFor = 1; autoMapCuts++; }
+    if (autoSlowFor > 1.5 && now - autoCutAt > 500) { speed = Math.max(1, speed - 1); autoCutAt = now; autoSlowFor = 1; autoMapCuts++; autoMapFt = 0; autoMapFr = 0; }
     // v9 (Nov 21): with plenty of headroom (close to 60 frames a second) for 2 s, and no cut in the last 5 s, go up about 2%
     autoFastFor = frameEMA < BAL.autoSpeedFrame * BAL.autoSpeedRoom ? autoFastFor + Math.min(rawDt, 0.5) : 0;
     if (autoFastFor > 2 && now - autoCutAt > 5000 && speed < BAL.autoSpeedMax) { speed = Math.min(BAL.autoSpeedMax, speed + Math.max(1, Math.round(speed * 0.02))); autoFastFor = 0; }   // 2% a step (2× at 100×)   // Nov 18: slow for 1.5 s straight: 1× less, then another 1× every half second it stays slow
