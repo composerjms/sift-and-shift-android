@@ -407,6 +407,7 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .as-cell { display: flex; flex-direction: column; min-width: 0; overflow: hidden; padding: 3px 5px; border: 1px solid var(--line); border-radius: 4px; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .as-cell b { color: var(--muted); font-weight: 500; font-size: 0.64rem; } .as-cell span { text-align: right; color: var(--fg); font-size: 0.86rem; font-weight: 600; } .as-cell small { text-align: right; color: var(--muted); font-size: 0.64rem; }
 .as-cell.now { border-color: var(--gold); } .as-cell.now span { color: var(--gold); }
+.as-cell.as-up span { color: var(--good); } .as-cell.as-down span { color: #ef7d7d; }
 .bulkbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; font-size: 0.8rem; color: var(--muted); }
 .bulkbar .btn { padding: 3px 10px; font-size: 0.75rem; } .bulkbar .btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
 .bulkbar .note { flex: 1 1 200px; }
@@ -1352,7 +1353,9 @@ let autoLearn = null, autoMapStart = 0, autoMapCuts = 0, autoMapAll = false, aut
 // map without slowing, next time it starts one notch faster; if it had to slow, next time it starts where it ended.
 // The button can go above 100× while Auto is on (up to BAL.autoSpeedMax).
 function autoLearned() { if (autoLearn) return autoLearn; try { autoLearn = JSON.parse(localStorage.getItem("siftshift-autorate") || "{}") || {}; } catch (e) { autoLearn = {}; } return autoLearn; }
-function autoLearnSave() { try { localStorage.setItem("siftshift-autorate", JSON.stringify(autoLearn || {})); } catch (e) {} }
+function autoLearnSave() { try { localStorage.setItem("siftshift-autorate", JSON.stringify(autoLearn || {})); localStorage.setItem("siftshift-autorate-d", JSON.stringify(autoDelta || {})); } catch (e) {} }
+let autoDelta = null;   // Nov 22: how much each map's learned rate moved the last time it was learned (green up, red down in Stats)
+function autoDeltas() { if (autoDelta) return autoDelta; try { autoDelta = JSON.parse(localStorage.getItem("siftshift-autorate-d") || "{}") || {}; } catch (e) { autoDelta = {}; } return autoDelta; }
 function autoSpeedStart(m) {   // the starting speed for map m: its learned rate turned into a button speed now, or the old rule for a map it hasn't seen
   const L = autoLearned()[m];
   speed = L ? Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(L / achSpeed()))) : Math.max(speed, 100);   // a map it hasn't seen starts at 100× or the speed it carried in, whichever is higher, and climbs from there
@@ -1365,7 +1368,8 @@ function autoSpeedLearn(m) {   // a map is finished: clean run → one notch fas
   const a = achSpeed(), T = BAL.autoSpeedFrame, avg = autoMapFr >= 2 ? autoMapFt / autoMapFr : autoMapCuts ? frameEMA : T,   /* too few frames since the last cut: go by the running average */ slow = avg > T * 1.25;
   const clean = !slow && autoMapCuts === 0 && speed >= autoMapStart;
   const s = slow ? Math.max(1, Math.floor(speed * Math.max(0.25, Math.sqrt(T / avg)))) : clean ? speed + 1 : speed;
-  autoLearned()[m] = +(Math.min(BAL.autoSpeedMax, s) * a).toFixed(1); autoLearnSave();
+  const L = autoLearned(), old = L[m], v = +(Math.min(BAL.autoSpeedMax, s) * a).toFixed(1);
+  autoDeltas()[m] = old == null ? 0 : +(v - old).toFixed(1); L[m] = v; autoLearnSave();
 }
 function autoSpeedMap() { if (!autoSpeed) return; autoSpeedStart(S.map); }
 function autoSpeedReset() { if (!autoSpeed) return; autoSpeedStart(1); }   // a new contract (or run) starts at map 1's speed
@@ -4806,12 +4810,12 @@ function multRows() {
   ];
 }
 function autoSpeedTable() {   // v9: what Auto speed has learned on this computer, map by map, and the button that means right now
-  const A = autoLearned(), a = achSpeed(), maps = Object.keys(A).map(Number).sort((x, y) => x - y);
+  const A = autoLearned(), D = autoDeltas(), a = achSpeed(), maps = Object.keys(A).map(Number).sort((x, y) => x - y);
   const head = `<p class="note">What Auto speed has learned on this computer: for each map number, the total rate it starts at (speed button × achievement game speed), and the button that comes to right now at game speed ×${a.toFixed(2)}. A map climbs during play when there's room and eases down when frames fall behind; a map that finishes without slowing starts one notch faster next time. ${autoSpeed ? `Auto is on: <b>map ${S.map}, ${speed}×</b> right now.` : "Auto is off."}</p>`;
   if (!maps.length) return head + `<p class="note">Nothing learned yet. Turn on Auto and play a few maps.</p>`;
-  const cells = maps.map((m) => { const r = A[m], btn = Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(r / a))), now = m === S.map;
-    return `<div class="as-cell${now ? " now" : ""}" style="grid-column:${(m - 1) % 10 + 1};grid-row:${Math.floor((m - 1) / 10) + 1}" title="Map ${m}: learned total rate ${r}, button ${btn}× at game speed ×${a.toFixed(2)}"><b>${m}</b><span>${Math.round(r)}</span><small>${btn}×</small></div>`; }).join("");
-  return head + `<div class="as-grid">${cells}</div><p class="note">Big number: the learned total rate (game seconds per real second). Small number: the speed button that comes to right now. Ten maps to a row. ${maps.length} map${maps.length > 1 ? "s" : ""} learned. Settings has a button to forget them.</p>`;
+  const cells = maps.map((m) => { const r = A[m], btn = Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(r / a))), now = m === S.map, d = D[m] || 0, dir = d >= 0.5 ? " as-up" : d <= -0.5 ? " as-down" : "";
+    return `<div class="as-cell${now ? " now" : ""}${dir}" style="grid-column:${(m - 1) % 10 + 1};grid-row:${Math.floor((m - 1) / 10) + 1}" title="Map ${m}: learned total rate ${r}${d ? ` (${d > 0 ? "+" : ""}${d} last time)` : ""}, button ${btn}× at game speed ×${a.toFixed(2)}"><b>${m}</b><span>${Math.round(r)}</span><small>${btn}×</small></div>`; }).join("");
+  return head + `<div class="as-grid">${cells}</div><p class="note">Big number: the learned total rate (game seconds per real second). Small number: the speed button that comes to right now. Green went up the last time that map was played, red came down. Ten maps to a row. ${maps.length} map${maps.length > 1 ? "s" : ""} learned. Settings has a button to forget them.</p>`;
 }
 function fmtX(v) { return "×" + (v < 10 ? v.toFixed(2) : v < 1000 ? v.toFixed(v < 100 ? 1 : 0) : fmt(v)); }
 function multTable(share) {
@@ -7745,7 +7749,7 @@ function wire() {
     cb.addEventListener("change", () => { try { localStorage.setItem("siftshift-rdleft", cb.checked ? "1" : "0"); } catch (e) {} setReadoutLeft(cb.checked); }); }
   { const b = document.getElementById("autoLearnReset"), n = document.getElementById("autoLearnNote");
     const show = () => { const k = Object.keys(autoLearned()).length; n.textContent = k ? `Auto speed has learned ${k} map${k > 1 ? "s" : ""} on this computer.` : "Auto speed hasn't learned any maps yet."; };
-    show(); b.addEventListener("click", () => { autoLearn = {}; autoLearnSave(); show(); toast("Auto speed will relearn each map from scratch."); }); }
+    show(); b.addEventListener("click", () => { autoLearn = {}; autoDelta = {}; autoLearnSave(); show(); toast("Auto speed will relearn each map from scratch."); }); }
   { const cb = document.getElementById("silentAchCb"); cb.checked = silentAchPref();
     cb.addEventListener("change", () => { try { localStorage.setItem("siftshift-silentach", cb.checked ? "1" : "0"); } catch (e) {} }); }
   { const cb = document.getElementById("startPausedCb"); cb.checked = startPausedPref();
