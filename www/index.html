@@ -403,6 +403,10 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .st.mt .mt-tot { color: var(--gold); border-left: 1px solid var(--line); } .mt-bar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-right: 6px; vertical-align: middle; overflow: hidden; } .mt-bar i { display: block; height: 100%; background: var(--gold); }
 .tgtplan .tgtrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 8px; margin: 4px 0; border: 1px solid var(--line); border-radius: 6px; }
 .tgtplan .tgtrow.on { border-color: var(--gold); } .tgtplan label.later { opacity: 0.55; } .tgtplan .tgtrow > b { min-width: 13em; font-weight: 600; } .tgtplan .tgtrow > b input { width: 4.5em; }
+.as-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 4px; margin: 8px 0; }
+.as-cell { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 0 6px; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; font-variant-numeric: tabular-nums; font-size: 0.78rem; }
+.as-cell b { color: var(--muted); font-weight: 500; } .as-cell span { text-align: right; color: var(--fg); } .as-cell small { grid-column: 1 / -1; text-align: right; color: var(--muted); font-size: 0.68rem; }
+.as-cell.now { border-color: var(--gold); } .as-cell.now span { color: var(--gold); }
 .bulkbar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; font-size: 0.8rem; color: var(--muted); }
 .bulkbar .btn { padding: 3px 10px; font-size: 0.75rem; } .bulkbar .btn[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
 .bulkbar .note { flex: 1 1 200px; }
@@ -4797,6 +4801,14 @@ function multRows() {
     { label: "Game speed", c: [cell(null), cell(null), cell(null), cell(achPart, `${achCount()} achievements × 1%${gagDone("coffee") ? " · coffee ×1.1" : ""}`), cell(achSpeed() / achPart, "waiting-room chairs, the gym and the lobby"), cell(null)] },
   ];
 }
+function autoSpeedTable() {   // v9: what Auto speed has learned on this computer, map by map, and the button that means right now
+  const A = autoLearned(), a = achSpeed(), maps = Object.keys(A).map(Number).sort((x, y) => x - y);
+  const head = `<p class="note">What Auto speed has learned on this computer: for each map number, the total rate it starts at (speed button × achievement game speed), and the button that comes to right now at game speed ×${a.toFixed(2)}. A map climbs during play when there's room and eases down when frames fall behind; a map that finishes without slowing starts one notch faster next time. ${autoSpeed ? `Auto is on: <b>map ${S.map}, ${speed}×</b> right now.` : "Auto is off."}</p>`;
+  if (!maps.length) return head + `<p class="note">Nothing learned yet. Turn on Auto and play a few maps.</p>`;
+  const cells = maps.map((m) => { const r = A[m], btn = Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(r / a))), now = m === S.map;
+    return `<div class="as-cell${now ? " now" : ""}" title="Map ${m}: learned total ${r}, button ${btn}× at game speed ×${a.toFixed(2)}"><b>${m}</b><span>${btn}×</span><small>${Math.round(r)}</small></div>`; }).join("");
+  return head + `<div class="as-grid">${cells}</div><p class="note">Big number: the button now. Small number: the learned total rate (game seconds per real second). ${maps.length} map${maps.length > 1 ? "s" : ""} learned. Settings has a button to forget them.</p>`;
+}
 function fmtX(v) { return "×" + (v < 10 ? v.toFixed(2) : v < 1000 ? v.toFixed(v < 100 ? 1 : 0) : fmt(v)); }
 function multTable(share) {
   const rows = multRows();
@@ -4827,13 +4839,14 @@ function updateStats() {
   // the page is rebuilt a few times a second: each part is only replaced when it changed, and anything scrolled
   // sideways (the long tables) keeps its place
   if (!body.dataset.parts) {
-    body.innerHTML = `<div class="seg st-sub" role="tablist" aria-label="Stats views"><button type="button" role="tab" data-sub="cur">Current</button><button type="button" role="tab" data-sub="mult">Multipliers</button><button type="button" role="tab" data-sub="adm">Admin</button><button type="button" role="tab" data-sub="key">Legend</button></div>
+    body.innerHTML = `<div class="seg st-sub" role="tablist" aria-label="Stats views"><button type="button" role="tab" data-sub="cur">Current</button><button type="button" role="tab" data-sub="mult">Multipliers</button><button type="button" role="tab" data-sub="aspd">Map auto speed</button><button type="button" role="tab" data-sub="adm">Admin</button><button type="button" role="tab" data-sub="key">Legend</button></div>
       <div data-subpane="cur"><div class="stat-grid">
         <section class="stat-card"><h3 class="section-h">Current map breakdown</h3><div class="tblwrap" data-part="map"></div></section>
         <section class="stat-card"><h3 class="section-h">Crew</h3><div class="tblwrap" data-part="crew"></div></section>
         <section class="stat-card"><h3 class="section-h">Game</h3><div class="tblwrap" data-part="game"></div></section>
       </div><p class="note">Times are in game seconds, so they stay comparable at any speed setting. Research numbers are on the Research tab.</p></div>
       <div data-subpane="mult" hidden><div data-part="mult"></div></div>
+      <div data-subpane="aspd" hidden><div data-part="aspd"></div></div>
       <div data-subpane="adm" hidden>
         <details class="st-sec" data-sec="mshare"><summary>Multipliers: share of each total</summary><div data-part="mshare"></div></details>
         <details class="st-sec" data-sec="proj"><summary>Projection accuracy (2% to 97% cleared)</summary><div data-part="proj"></div></details>
@@ -4869,6 +4882,7 @@ function updateStats() {
   }
   if (statSub === "key") return;   // the legend is static
   if (statSub === "mult") { put("mult", multTable(false)); return; }
+  if (statSub === "aspd") { put("aspd", autoSpeedTable()); return; }
   const open = (k) => { const d = body.querySelector(`[data-sec="${k}"]`); return d && d.open; };   // only the open sections are worked out
   if (open("mshare")) put("mshare", multTable(true));
   if (open("proj")) {
