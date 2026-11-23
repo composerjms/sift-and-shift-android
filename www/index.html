@@ -401,6 +401,7 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .base.owned { border-color: var(--gold); color: var(--gold); }
 .st.mt td.mt-none { color: var(--muted); opacity: 0.5; } .mt-idle { color: var(--muted); opacity: 0.7; } .st.mt td.mt-neg { color: #ff8a80; }
 .st.mt .mt-tot { color: var(--gold); border-left: 1px solid var(--line); } .mt-bar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-right: 6px; vertical-align: middle; overflow: hidden; } .mt-bar i { display: block; height: 100%; background: var(--gold); }
+.t-opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: baseline; margin: 10px 0; text-align: left; } .t-opt input { grid-row: 1 / span 2; } .t-opt .note { grid-column: 2; margin: 0; }
 .tutcard { position: fixed; left: 16px; bottom: 16px; z-index: 95; width: min(420px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 0.86rem; line-height: 1.45; }
 .tutcard .tut-head { font-weight: 600; margin-bottom: 8px; color: var(--fg); }
 .tutcard .tut-note { font-style: italic; color: #d9cfb4; background: rgba(232,193,90,0.06); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
@@ -9929,14 +9930,31 @@ function showTitle(mode = "main", slot = 0) {
       <button class="btn" id="tNew">New game</button>
       <button class="btn" id="tLoad"${recs.some(Boolean) ? "" : " disabled"}>Load game</button>
       <button class="btn" id="tTape" title="Plane Estates' official training video. One minute. Mandatory-ish.">Orientation tape</button>
+      <button class="btn" id="tOpts">Options</button>
       ${desk ? `<button class="btn" id="tQuit">Quit</button>` : ""}</div>
       ${latest ? `<p class="note">${slotLine(recs[latest[0] - 1])}</p>` : `<p class="note">No saved games yet.</p>`}`;
     body.querySelector("#tContinue").onclick = () => latest && loadSlot(latest[0]);
     body.querySelector("#tNew").onclick = () => showTitle("new");
     body.querySelector("#tLoad").onclick = () => showTitle("load");
     body.querySelector("#tTape").onclick = openTape;
+    body.querySelector("#tOpts").onclick = () => showTitle("opts");
     const q = body.querySelector("#tQuit"); if (q) q.onclick = () => desk.quit();
     body.querySelector("#tContinue").focus();
+    return;
+  }
+  if (mode === "opts") {   // Nov 23: options for every save on this computer
+    const opt = (id, on, label, note) => `<label class="t-opt"><input type="checkbox" id="${id}"${on ? " checked" : ""}> <b>${label}</b><span class="note">${note}</span></label>`;
+    body.innerHTML = `<h2>Options</h2><p class="note">These apply to every save on this computer.</p>
+      ${opt("toTut", !tutOff, "Show tutorials", "a short note and Steve's explanation the first time something new turns up. Off: none show, in any save.")}
+      ${opt("toAch", silentAchPref(), "Silent repeat achievements", "no pop-up for an achievement a save has already earned in an earlier run.")}
+      ${opt("toPause", startPausedPref(), "Start paused", "a save you load, or a new game, opens paused.")}
+      <div class="foot-btns"><button class="btn" id="tBack">Back</button></div>`;
+    const sync = (id, v) => { const el = document.getElementById(id); if (el) el.checked = v; };
+    body.querySelector("#toTut").onchange = (e) => { tutOff = !e.target.checked; try { localStorage.setItem("ss_tutOff", tutOff ? "1" : "0"); } catch (er) {} sync("tutOnCb", !tutOff); if (tutOff) { tutQueue.length = 0; tutRender(); } };
+    body.querySelector("#toAch").onchange = (e) => { try { localStorage.setItem("siftshift-silentach", e.target.checked ? "1" : "0"); } catch (er) {} sync("silentAchCb", e.target.checked); };
+    body.querySelector("#toPause").onchange = (e) => { try { localStorage.setItem("siftshift-startpaused", e.target.checked ? "1" : "0"); } catch (er) {} sync("startPausedCb", e.target.checked); };
+    body.querySelector("#tBack").onclick = () => showTitle("main");
+    body.querySelector("#toTut").focus();
     return;
   }
   if (mode === "new" || mode === "load") {
