@@ -248,7 +248,7 @@ body.watching .lab-box { right: 18px; top: 18px; width: 360px; font-size: 0.85re
 .lab-box .lb-h { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: var(--f-mono); margin-bottom: 4px; color: #6fe3d6; }
 .lab-box .lb-h button { background: none; border: 0; color: var(--muted); font-size: 1rem; cursor: pointer; padding: 0 2px; }
 .lab-box dl { margin: 0; display: grid; grid-template-columns: minmax(0, 8.5em) minmax(0, 1fr); gap: 3px 10px; }
-.lab-box dt { color: var(--muted); } .lab-box dd { margin: 0; font-family: var(--f-mono); text-align: right; min-width: 0; overflow-wrap: anywhere; }   /* long values wrap inside the box instead of running off its edge */
+.lab-box dt { color: var(--muted); } .lab-box dd { margin: 0; font-family: var(--f-mono); text-align: right; min-width: 0; overflow-wrap: break-word; }   /* long values wrap inside the box instead of running off its edge */
 .lab-box .note { margin: 6px 0 0; font-size: 0.72rem; }
 .tool-box { border-left-color: #9fd3ff; } .tool-box .lb-h { color: #9fd3ff; }
 .tool-box .tb-bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 2px 0 6px; } .tool-box .tb-bar i { display: block; height: 100%; background: var(--accent); }
@@ -723,9 +723,9 @@ table.kvt td.n { text-align: left; }
 #mgRoom section { background: var(--mg-panel); border: 1px solid var(--mg-line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; min-width: 0; }
 #mgRoom section h3 { font: 600 0.78rem var(--f-display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--mg-accent); margin: 0; display: flex; justify-content: space-between; gap: 8px; }
 #mgRoom section h3 small { color: var(--mg-muted); font: 400 0.75rem var(--f-mono); letter-spacing: 0; text-transform: none; }
-#mgRoom dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 12px; font-size: 0.9rem; margin: 0; }
-#mgRoom dt { color: var(--mg-muted); }
-#mgRoom dd { margin: 0; text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+#mgRoom dl { display: grid; grid-template-columns: max-content minmax(0, 1fr);   /* Nov 23: labels keep their width; long values wrap instead */ gap: 3px 12px; font-size: 0.9rem; margin: 0; }
+#mgRoom dt { color: var(--mg-muted); white-space: nowrap; }
+#mgRoom dd { margin: 0; text-align: right; font-family: var(--f-mono); font-variant-numeric: tabular-nums; min-width: 0; overflow-wrap: break-word; }
 #mgRoom .mg-bar { height: 10px; border-radius: 5px; background: #0d1014; border: 1px solid var(--mg-line); overflow: hidden; }
 #mgRoom .mg-bar i { display: block; height: 100%; background: var(--mg-green); width: 0; }
 #mgRoom .mg-bar.batt i { background: linear-gradient(90deg, var(--mg-gold), #f6dd8f); }
@@ -8407,7 +8407,7 @@ function renderStats() {
   $("hullTxt").textContent = `${fmt(Math.ceil(R.hp))} / ${fmt(hm)}`;
   $("waveTxt").textContent = R.dead ? `fell on ${R.wave}` : `${R.wave} · ${R.queue.length ? "incoming" : "holding"}`;
   $("runState").textContent = R.dead ? "run over" : `wave ${R.wave}`;
-  $("enTxt").textContent = `${fmt(R.foes.length)}${R.foes.length >= T.fieldCap ? " (full: next wave waits)" : ""} · ${fmt(R.kills)} cleared`;
+  { const full = R.foes.length >= T.fieldCap, el = $("enTxt"); el.textContent = `${fmt(R.foes.length)}${full ? " (full)" : ""} · ${fmt(R.kills)} cleared`; el.title = full ? "The field is full: the next wave waits until there's room" : ""; }
   { const w = Math.max(1, R.wave), bw = Math.ceil(w / 5) * 5;
     $("hpTxt").textContent = `${num(hpOf("clod", w))} (bunny ${num(hpOf("bunny", w))}${w >= 6 ? `, blob ${num(hpOf("blob", w))}` : ""})`;
     $("bossTxt").textContent = `wave ${bw}: ${num(hpOf("boss", bw))} health`; }
