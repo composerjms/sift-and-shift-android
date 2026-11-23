@@ -1458,7 +1458,7 @@ const AUTO_OPTS = {
   rakes:     { label: "Rake focus", info: "How rakes choose their next strip. Best patch was about 7% faster by map 10 and 19% by map 100 in testing.", opts: [["best", "Best patch: most dirt per second, walk included"], ["nearest", "Nearest: the closest open strip"]] },
   summary:   { label: "Contract summary", info: "The card that shows how each contract went. While it's up, the game waits.", opts: [["stop", "Stop and show it: the game waits until you continue"], ["skip", "Skip it and keep going (it's still in Stats → Contract history)"], ...[5, 10, 20, 25, 50].map(n => ["every" + n, `Skip it, but stop every ${n} contracts (after contract ${n}, ${n * 2}, ...)`])] },
   mg:        { label: "Meaner Gleaner breaks", info: "What happens to time off (one run per 30 minutes of game time, up to 6) once the Meaner Gleaner unlocks.", opts: [["manual", "Leave them for me to play in the Break room"], ["auto", "Take them unseen: autoplay plays each run in the background as it's earned"], ["seen", "Take them on screen: autoplay opens the Break room and plays each run where you can watch (the main game waits)"], ["batch", "Take them on screen in batches: autoplay waits until the bank is full, then plays them back to back where you can watch"]] },
-  pdays:     { label: "Personal days", info: "Personal days come one per contract once the Meaner Gleaner unlocks: double spill, no cap, but they start over at each promotion. With breaks: whenever autoplay takes time off (unseen or on screen), it plays personal days first (up to 3 a break), then the banked runs. Has no effect if Meaner Gleaner breaks are left to you.", opts: [["breaks", "With breaks: personal days first, then the banked runs"], ["never", "Never: leave them for me to play"]] },
+  pdays:     { label: "Personal days", info: "Personal days come one per contract once the Meaner Gleaner unlocks: double spill, no cap, but they start over at each promotion. With breaks: whenever autoplay takes time off (unseen or on screen), it plays up to this many personal days first, then jumps over to the banked vacation runs; any left over wait for the next break (and are lost at promotion). Unseen breaks pause the main game while each run plays out, so a big number there means a longer pause. Has no effect if Meaner Gleaner breaks are left to you.", opts: [["b1", "With breaks: up to 1 personal day first, then vacation"], ["b2", "With breaks: up to 2 personal days first, then vacation"], ["breaks", "With breaks: up to 3 personal days first, then vacation"], ["b5", "With breaks: up to 5 personal days first, then vacation"], ["b10", "With breaks: up to 10 personal days first, then vacation"], ["b20", "With breaks: up to 20 personal days first, then vacation"], ["ball", "With breaks: all personal days first, then vacation"], ["never", "Never: leave them for me to play"]] },
   contracts: { label: "New contracts", info: "When it signs a new contract (a fresh start with permanent bonuses). It signs immediately, mid-map: it does not wait for the current map to finish.", opts: [["auto", "When the main dig slows: opening map +10%, then tighter each map (5, 8, 11 points…)"], ["asap", "Immediately, as soon as one is available"], ["never", "Never: you sign them"]] },
   promote:   { label: "Promotions (testing)", info: "Whether autoplay takes a promotion for you once this run's contract cap is reached (25 the first time, then 5 more each promotion). The run waits in the Office until you start the next one. Off by default.", opts: [["manual", "Never: I'll promote myself in the Office"], ["asap", "As soon as one is available"]] },
 };
@@ -4461,7 +4461,7 @@ function runAutoplay() { apNow = true; try { runAutoplay0(); } finally { apNow =
 function runAutoplay0() {
   { const pm = AP("promote"); if (pm && pm !== "manual" && promoReady() && !mgOpen) { if (summaryOpen) closeContractSummary(); promote(); return; } }   // v8: autoplay takes the promotion (testing)
   if (!S.trial && AP("mg") === "auto" && S.mg && S.mg.unlocked && S.mg.bank > 0 && !mgOpen) mgAutoBreak();
-  if (!S.trial && (AP("mg") === "seen" && S.mg && S.mg.unlocked && S.mg.bank > 0 || AP("mg") === "batch" && S.mg && S.mg.unlocked && S.mg.bank >= MG.cap()) && !mgOpen) { const was = watching; if (was && typeof window.setWatch === "function") window.setWatch(false); MG.watchBreak(was, AP("pdays") === "breaks"); }
+  if (!S.trial && (AP("mg") === "seen" && S.mg && S.mg.unlocked && S.mg.bank > 0 || AP("mg") === "batch" && S.mg && S.mg.unlocked && S.mg.bank >= MG.cap()) && !mgOpen) { const was = watching; if (was && typeof window.setWatch === "function") window.setWatch(false); MG.watchBreak(was, pdPerBreak() > 0); }
   // research: re-pair towers and tracks every few game seconds, as towers' cells run dry
   if (resAuto() && anyLab() && S.gameTime - (S.resPairAt || 0) > 3) { S.resPairAt = S.gameTime; resAutoFocus(); }
   // new contract: once it's available and this map has run 10% longer than the last one, before Mop-up starts
@@ -7828,8 +7828,8 @@ function wire() {
     if (e.code !== "Space" || e.repeat || e.ctrlKey || e.altKey || e.metaKey) return;
     const t = e.target, tag = t && t.tagName;
     if (tag === "TEXTAREA" || tag === "SELECT" || (tag === "INPUT" && !/^(checkbox|radio|button|range)$/i.test(t.type)) || (t && t.isContentEditable)) return;   // typing
-    if (!inGame || officeBreak || mgOpen || !document.getElementById("titleScreen").hidden) return;
-    e.preventDefault(); setPaused(!paused); toast(paused ? "Paused (Space to resume)" : "Resumed");
+    if (!inGame || officeBreak || !document.getElementById("titleScreen").hidden) return;   // Nov 23: works in the Break room too (one pause)
+    e.preventDefault(); setPaused(!paused); (mgOpen && typeof mgToast === "function" ? mgToast : toast)(paused ? "Paused (Space to resume)" : "Resumed");
   });
   wireSaveCodes();
   wireTT(); wireOffice();
@@ -8445,9 +8445,11 @@ function build() {
   $("mounts").addEventListener("change", (e) => { const s = e.target.closest("[data-m]"); if (!s) return; G.load[+s.dataset.m] = s.value; G.myLoad = true; renderLoadout(); });   // you set the loadout: autoplay stops rearranging it
   for (const id of ["ups", "gups"]) $(id).addEventListener("click", (e) => { const b = e.target.closest("[data-buy]"); if (b && buy(b.dataset.buy)) renderShop(); });
   const segB = [...box.querySelectorAll("#mg-speed button")];
-  const setSpeed = (s) => { G.speed = s; segB.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.s === s))); const g = box.querySelector("#mg-speed"); if (g && typeof achSpeed === "function") g.title = `Your earned game speed (×${achSpeed().toFixed(2)}) applies here too; these buttons multiply on top.`; };
+  // Nov 23: one pause for the whole game. The room's Pause is the main pause, and any speed button here resumes both
+  const paint = () => { const cur = paused ? 0 : G.speed; segB.forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.s === cur))); const g = box.querySelector("#mg-speed"); if (g && typeof achSpeed === "function") g.title = `Your earned game speed (×${achSpeed().toFixed(2)}) applies here too; these buttons multiply on top. Pause here is the same pause as the main game.`; };
+  const setSpeed = (s) => { if (s === 0) setPaused(true); else { G.speed = s; if (paused) setPaused(false); } paint(); };
   segB.forEach(b => b.addEventListener("click", () => setSpeed(+b.dataset.s)));
-  box.syncSpeed = () => setSpeed(G.speed);
+  box.syncSpeed = () => { if (!(G.speed > 0)) { G.speed = 1; if (!paused) setPaused(true); } paint(); };   // an old save's room speed of 0 was its own pause
   $("auto").addEventListener("change", (e) => { G.auto = e.target.checked; });
   $("back").addEventListener("click", () => close());
   over.addEventListener("click", (e) => { const b = e.target.closest("[data-o]"); if (!b) return;
@@ -8459,14 +8461,16 @@ function openRoom() {
   bind(); if (!G.unlocked) return;
   build(); open = true; mgOpen = true;
   const box = document.getElementById("mgRoom"); box.hidden = false; box.syncSpeed(); $("auto").checked = G.auto;
-  if (R.ended) { if (seen && seen.pd && G.pdays > 0) { seen.pdUsed = 1; startRun(true); } else if (G.bank > 0) startRun(); }   // walking in with time banked starts a run (autoplay's on-screen break: personal days first)
+  if (R.ended) { if (paused) pendingStart = true; else walkIn(); }   // Nov 23: walking in while paused waits: no day is spent until the game resumes
   resize(); renderLoadout(); renderShop(); renderStats(); drawSpark();
 }
+let pendingStart = false;
+function walkIn() { if (seen && seen.pd && G.pdays > 0) { seen.pdUsed = 1; startRun(true); } else if (G.bank > 0) startRun(); }   // walking in with time banked starts a run (autoplay's on-screen break: personal days first)
 let seen = null;   // autoplay's on-screen break: { was: the Gleaner autoplay box before, runs, best }
 function watchBreak(rewatch, pd) {   // autoplay walks in, plays every banked run where you can see it, then heads back to work (pd: personal days first)
   bind(); if (!G.unlocked || G.bank <= 0 || open) return false;
   seen = { was: G.auto, runs: 0, best: 0, rewatch: !!rewatch, pd: !!pd }; G.auto = true;
-  const nPd = pd ? Math.min(G.pdays, BAL.pdaysPerBreak) : 0, nB = G.bank;
+  const nPd = pd ? Math.min(G.pdays, pdPerBreak()) : 0, nB = G.bank;
   openRoom();
   if (typeof mgToast === "function") mgToast(`Autoplay is taking ${nB === 1 ? "a break" : nB + " breaks"}${nPd ? ` and ${nPd} personal day${nPd === 1 ? "" : "s"}` : ""} on screen. Back to work leaves early.`);
   return true;
@@ -8474,7 +8478,7 @@ function watchBreak(rewatch, pd) {   // autoplay walks in, plays every banked ru
 function seenTick() {   // between runs: start the next banked one, or head back
   if (!seen || !R.dead || R.cool > 0) return;
   seen.runs++; seen.best = Math.max(seen.best, R.wave);
-  if (seen.pd && G.pdays > 0 && (seen.pdUsed || 0) < BAL.pdaysPerBreak) { seen.pdUsed = (seen.pdUsed || 0) + 1; startRun(true); return; }
+  if (seen.pd && G.pdays > 0 && (seen.pdUsed || 0) < pdPerBreak()) { seen.pdUsed = (seen.pdUsed || 0) + 1; startRun(true); return; }
   if (G.bank > 0) { startRun(); return; }
   const s = seen; close();
   if (s.rewatch && typeof window.setWatch === "function") window.setWatch(true);   // back to the full-screen board it came from
@@ -8483,11 +8487,13 @@ function seenTick() {   // between runs: start the next banked one, or head back
 function close() {   // back to work: a run still going ends here
   if (!open) return;
   if (seen) { G.auto = seen.was; seen = null; }
+  pendingStart = false;
   if (R && !R.ended) { R.dead = true; R.cool = 0; endRun(); }
   open = false; mgOpen = false; document.getElementById("mgRoom").hidden = true;
 }
 function frame(real) {   // called by the game's frame loop while the room is open (the main game is paused)
   if (!open) return;
+  if (pendingStart) { pendingStart = false; if (R.ended) walkIn(); }
   acc += real * G.speed * (typeof achSpeed === "function" ? achSpeed() : 1); let steps = 0;   // earned game speed (achievements) applies in here too; the buttons multiply on top
   const t0 = performance.now();
   while (acc >= DT && steps < 900) { if ((steps & 15) === 0 && performance.now() - t0 > 30) { acc = 0; break; }   // never hold a frame past ~30 ms: a heavy field slows the room instead of freezing the tab
@@ -8537,8 +8543,9 @@ function mgCheckUnlock() {
     if (n > 0) setTimeout(() => mgToast(`Plane Estates could have given you a personal day for ${n === 1 ? "your first contract" : `your first ${n} contracts`}, but you didn't read the fine print, so you didn't know there'd be a break room. Oopsies on you.`), 6500);
   }
 }
+function pdPerBreak() { const v = AP("pdays"); if (v === "never") return 0; if (v === "ball") return Infinity; const m = /^b(\d+)$/.exec(v || ""); return m ? +m[1] : BAL.pdaysPerBreak; }   // Nov 23: the player picks how many personal days autoplay plays before the vacation runs ("breaks" = the old 3)
 function mgAutoBreak() {   // autoplay spends banked time off as it arrives, played out unseen
-  if (AP("pdays") === "breaks") { let n = 0, best = 0; while (S.mg && S.mg.pdays > 0 && n < BAL.pdaysPerBreak) { const p = MG.quickRun(true); if (!p) break; n++; best = Math.max(best, p.wave); }   // v9: personal days first
+  if (pdPerBreak() > 0) { let n = 0, best = 0; const cap = pdPerBreak(); while (S.mg && S.mg.pdays > 0 && n < cap) { const p = MG.quickRun(true); if (!p) break; n++; best = Math.max(best, p.wave); }   // v9: personal days first
     if (n) mgToast(`Took ${n} personal day${n === 1 ? "" : "s"} (double spill): best wave ${best}.`); }
   const r = MG.quickRun(); if (!r) return;
   mgToast(`Took a break: the Meaner Gleaner held to wave ${r.wave}. Annex battery ${Math.round(r.charge * 100)}% (+${Math.round(r.charge * 50)}% annex power).`);
@@ -8632,7 +8639,7 @@ function achEver() {   // v9: every achievement this save has ever earned, kept 
   return O.achEver;
 }
 function startPausedPref() { try { return localStorage.getItem("siftshift-startpaused") === "1"; } catch (e) { return false; } }
-function setPaused(v) { paused = v; const pb = document.getElementById("pauseBtn"); if (pb) pb.textContent = paused ? "Resume" : "Pause"; }
+function setPaused(v) { paused = v; const pb = document.getElementById("pauseBtn"); if (pb) pb.textContent = paused ? "Resume" : "Pause"; const mr = document.getElementById("mgRoom"); if (mr && mr.syncSpeed && !mr.hidden) mr.syncSpeed(); }
 
 // ---------- save codes ----------
 const CODE_PREFIX = "RSWEEP1:";
