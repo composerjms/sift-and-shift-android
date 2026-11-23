@@ -401,6 +401,20 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .base.owned { border-color: var(--gold); color: var(--gold); }
 .st.mt td.mt-none { color: var(--muted); opacity: 0.5; } .mt-idle { color: var(--muted); opacity: 0.7; } .st.mt td.mt-neg { color: #ff8a80; }
 .st.mt .mt-tot { color: var(--gold); border-left: 1px solid var(--line); } .mt-bar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-right: 6px; vertical-align: middle; overflow: hidden; } .mt-bar i { display: block; height: 100%; background: var(--gold); }
+.tutcard { position: fixed; left: 16px; bottom: 16px; z-index: 95; width: min(420px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 0.86rem; line-height: 1.45; }
+.tutcard .tut-head { font-weight: 600; margin-bottom: 8px; color: var(--fg); }
+.tutcard .tut-note { font-style: italic; color: #d9cfb4; background: rgba(232,193,90,0.06); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
+.tutcard .tut-note span { display: block; font-style: normal; font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.tutcard .tut-steve { font-family: var(--f-mono, ui-monospace, monospace); font-size: 0.8rem; color: var(--good); }
+.tutcard .tut-steve b { color: var(--accent); margin-right: 4px; }
+.tutcard .tut-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.drawoff { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40; padding: 6px 12px; border: 1px solid var(--gold); border-radius: 6px; background: var(--panel); color: var(--gold); font-size: 0.85rem; pointer-events: none; }
+.tgtwrap { overflow-x: auto; margin: 6px 0; } .tgttable { border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+.tgttable th, .tgttable td { padding: 4px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
+.tgttable thead th { border: 0; color: var(--muted); font-weight: 500; font-size: 0.74rem; white-space: normal; vertical-align: bottom; }
+.tgttable tbody th { text-align: left; font-weight: 600; } .tgttable input { width: 3.6em; } .tgttable tbody th input { width: 3.8em; }
+.tgttable td.na { background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(255,255,255,0.03) 5px 10px); }
+.tgttable tr.on th, .tgttable tr.on td { border-color: var(--gold); background-color: rgba(232,193,90,0.06); } .tgttable tr.on th:first-child { border-left: 1px solid var(--gold); } .tgttable tr.on td:last-child { border-right: 1px solid var(--gold); }
 .tgtplan .tgtrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 6px 8px; margin: 4px 0; border: 1px solid var(--line); border-radius: 6px; }
 .tgtplan .tgtrow.on { border-color: var(--gold); } .tgtplan label.later { opacity: 0.55; } .tgtplan .tgtrow > b { min-width: 13em; font-weight: 600; } .tgtplan .tgtrow > b input { width: 4.5em; }
 .as-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; margin: 8px 0; max-width: 760px; }
@@ -738,6 +752,7 @@ table.kvt td.n { text-align: left; }
 #mgRoom .seg { display: flex; gap: 4px; flex-wrap: wrap; }
 #mgRoom .seg button[aria-pressed="true"] { border-color: var(--mg-accent); color: var(--mg-accent); }
 #mgRoom .pips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+#mgRoom .pips .bankchip { display: inline-flex; align-items: center; gap: 5px; color: var(--mg-green); font-weight: 600; font-size: 12px; } #mgRoom .pips .bankchip small { color: var(--muted); font-weight: 400; margin-left: 1px; }
 #mgRoom .pips .pdchip { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; color: #e8c15a; font-weight: 600; font-size: 12px; }
 #mgRoom .pips i { width: 22px; height: 12px; border-radius: 3px; border: 1px solid var(--mg-line); background: #0d1014; }
 #mgRoom .pips i.on { background: var(--mg-green); border-color: var(--mg-green); }
@@ -912,6 +927,8 @@ table.kvt td.n { text-align: left; }
     <div class="zoomrow"><label><input type="checkbox" id="quietRepCb"> Quiet reports</label> <span class="note">admin: new daily reports and off-the-record notes don't pop up over the panel; they still collect in the Reports tab with its count.</span></div>
     <div class="zoomrow"><label><input type="checkbox" id="rdLeftCb"> Status column on the left</label> <span class="note">test layout: Money, Map, Layers and the rest as a column beside the board instead of a bar across the top.</span></div>
     <div class="zoomrow"><button class="btn" type="button" id="autoLearnReset">Forget learned auto speeds</button> <span class="note" id="autoLearnNote"></span></div>
+    <div class="zoomrow"><label><input type="checkbox" id="tutOnCb"> Show tutorials</label> <button class="btn" type="button" id="tutReset">Show them all again</button> <span class="note">a short note and Steve's explanation the first time something new turns up, once per save. Turning them off still marks them seen; "show them all again" clears this save's list.</span></div>
+    <div class="zoomrow"><label><input type="checkbox" id="drawOffCb"> Don't draw the board</label> <span class="note">admin speed test: the game keeps running and the numbers keep updating, but the board (2D or 3D) isn't drawn. Not saved: it's back on next time the game opens.</span></div>
     <div class="zoomrow"><label><input type="checkbox" id="silentAchCb"> Silent repeat achievements</label> <span class="note">no pop-up for an achievement this save has earned in an earlier run. It still counts, and new ones still show.</span></div>
     <div class="zoomrow"><label><input type="checkbox" id="startPausedCb"> Start paused</label> <span class="note">a save you load (or a new game) opens paused, so you can set things up first. Space bar pauses and resumes any time.</span></div>
     <div class="zoomrow"><label for="mileSel">Milestone saves</label> <select id="mileSel"><option value="0">Off</option><option value="5">Every 5 contracts</option><option value="10">Every 10 contracts</option><option value="20">Every 20 contracts</option></select>
@@ -1373,6 +1390,7 @@ function autoSpeedLearn(m) {   // a map is finished: clean run → one notch fas
 }
 function autoSpeedMap() { if (!autoSpeed) return; autoSpeedStart(S.map); }
 function autoSpeedReset() { if (!autoSpeed) return; autoSpeedStart(1); }   // a new contract (or run) starts at map 1's speed
+let drawOff = false, tutT = 0;   // Nov 23: admin: skip drawing the board entirely (session only)
 let hideCrew = false; try { hideCrew = localStorage.getItem("ss_hideCrew") === "1"; } catch (e) {}   // 2D: just the board, no crew drawn (also saves a little time)   // mgOpen: the Meaner Gleaner break room is up, and the main game waits
 let rateWin = 0, rateAcc = 0, totalRate = 0;
 // dig-per-second breakdown: dirt dug from cells (not gleaned spill) by tool type, one bucket per game second, last 60 kept
@@ -1601,6 +1619,7 @@ function applyTargetPlan() {   // copy the row for the contract being played int
   if (!S.target) return; const n = (S.contract ? S.contract.n : 0) + 1, r = tgtRowFor(n);
   for (const k of TGT_KEYS) S.target[k] = r[k] || 0;
 }
+const TGT_COLS = [["s", "Sweepers", 24], ["r", "Rakes", 24], ["m", "Multi-tools", 12], ["ss", "Super sweepers", 24], ["sr", "Super rakes", 24], ["x", "Crossroads", 24], ["xi", "Interchanges", 24]];   // Nov 23: the crew target table
 const tgtLabel = (r) => `${r.s}s ${r.r}r ${r.m}m ${r.ss}ss ${r.sr}sr ${r.x}x ${r.xi}xi`;
 function freshRun() {
   try { applyTargetPlan(); } catch (e) {}
@@ -2355,6 +2374,48 @@ function report(key) {
   if (S.fieldLog.length > 200) S.fieldLog.length = 200;
   S.mapReported = true;
   showReports();
+}
+const TUTS = [[1, "A new game starts", "...Who are you? ...Oh, no...did that idiot hire somebody else to get rid of dirt? Look...I know you probably don't want to hear this but it's not worth it. They promised you a promotion? Of course they did...urgh, look, I used to be in your position. On that same hunk of rock. So I'll help you out - you basically just monitor everything. The crew is all automated. You just have to make adjustments to how they work...but it won't get any easier.", "Welcome to the site. It has been a while since anyone logged in. The board is dirt, several layers deep. Sweepers dig one cell at a time, fill their tanks, and carry the load back to base, where it sells. Clear every cell and the map is done; the next map is deeper. Everything here runs on its own. Your job is to decide what it runs on."], [2, "The first purchase is affordable", "Wait...they are paying you? Well, that's good, I guess. Can finally afford that...what's that? They want you to pay for new tools and upgrades with the money they gave you? Sounds like Corporate to me.", "The Upgrades tab is the shop. Hires add crew; upgrades make the crew you have faster, bigger or better paid. Every purchase raises the price of the next one. The buttons at the top buy one, five, ten, or as many as you can afford. Spend it. Money sitting still doesn't dig."], [3, "Rakes unlock", "Don't ask how I know, but I hear Corporate is allowing you to buy rakes. Rakes work differently than the Sweepers - instead of one spot going down - it evenly does two! I mean, it's slower doing each one, but still...two!", "Rakes don't dig a hole. They take the highest cells down evenly, two at a time, which leaves less for the sweepers to chase. One sweeper is fast on a single cell; a rake is steady across a patch. A crew with both clears a map faster than either alone."], [4, "The first research tower", "What the heck are those? Research towers? Those idiots just keep adding new ways to speed up dirt, don't they?", "Research towers study one track each: suction, travel, tanks, sale price, training, spill, supply, prospecting. A tower levels up as the crew works, and every level is permanent for the rest of this run. Annexes on a tower add to what it can hold."], [5, "The first contract can be signed", "", "A contract asks for a number of maps. Finish them and you can sign the next one, at a new site that pays more for the same dirt. The crew and the shop start over with each contract; research and achievements stay. Signing early gives up the maps you'd have dug. Signing late wastes time. Most supervisors sign when the dig starts to slow. Read what you sign."], [6, "The board grows", "", "A bigger board holds more dirt per map and has more room for crew. It takes longer to clear, and it pays more."], [7, "A second base", "", "Bases hold your crew. Each one has a set number of slots, so more bases means a bigger crew. Crew haul to the nearest base, so where the bases sit matters too."], [8, "The first crew star", "", "Crew earn experience as they work. Enough levels and they earn a star. A star makes a unit faster and gives it room for more canisters. Some skills only open at higher stars. Stars are earned. Keep that in mind when people start handing you things."], [9, "Canisters unlock", "", "A canister adds tank space to one unit. More space means fewer trips back to base. Each unit has a number of canister slots, and the slots grow with its stars."], [10, "Mop-up unlocks", "", "At the end of a map, the last few cells take longest, because the crew spends more time walking than digging. Once a unit reaches three stars, the mop-up phase handles those cells and the rest of the crew comes home. Recall sends everyone back to base at once."], [11, "Fusion becomes available", "", "Two units at the star requirement can fuse into one. Two sweepers make a super sweeper, two rakes a super rake, and a sweeper with a rake makes a multi-tool. You give up two slots' worth of crew for one unit that does more than both did. The crew target in Autoplay setup decides which fusions autoplay goes for. The fusion rules were tested very carefully. By someone."], [12, "A multi-tool's first attachment", "", "A multi-tool carries one head at a time: a comb, a roller, and others as it levels. It can only change heads at a base. That was not the original design. Attachments make each head better at its job."], [13, "The Meaner Gleaner unlocks", "", "Work earns time off: one break for every half hour of game time, banked up to a limit that grows with each promotion. A break is a run in the Break room against the Meaner Gleaner. What a run earns pays for Break room upgrades and charges the annex battery, which feeds research. Personal days come one per contract and pay double. Autoplay can take breaks for you. Please take your breaks. Not everyone gets to."], [14, "Masons arrive", "", "The Mason's yard takes the spill your gleaners collect and presses it into bricks. The brick press and the kiln make that faster. Bricks build houses."], [15, "The first brick house", "", "Each house adds one percent to the price of everything you sell. Houses are also what a promotion is counted in."], [16, "Tech Testing opens", "", "Tech Testing sends a trial: a fresh dig with set rules for the crew, timed against lunch. Reach the target before lunch and you pass that tier, for good. Tiers open as you sign more contracts. If lunch comes first, nothing is lost. Try again later. And eat something. Lunch is important."], [17, "Crossroads can be hired", "", "Crossroads pave as they level. Paved cells are faster for everyone to cross, so a crossroad helps the whole crew, not just its own patch."], [18, "Interchanges", "", "Two crossroads fuse into an interchange: bigger, faster, and it paves more as it goes."], [19, "The first site condition", "", "Some sites have conditions: thin air, loose dirt, cold nights. Each one helps or hurts one stat for as long as you work that site. The contract card shows the condition before you sign. Read it. Please."], [20, "The crew-target switch", "", "Autoplay builds the crew toward a target. Before fusion, it hires plain sweepers, rakes and crossroads. After fusion, it follows a mix of fused units, and that mix can change by contract: one row from contract 1, another from a later contract, as many rows as you like. The row in use is outlined. I'll follow whatever you set. You're doing well, for what it's worth."], [21, "The north tower", "", "A fifth research tower stands on the north edge of the site. It studies its own track, the same way the others do. From up there you can see the whole site. I like that one. I can't see much from here."], [22, "A promotion is first available", "", "You've reached the contract cap. A promotion turns your houses into promotion points and starts a new run from contract 1. The Office and your Tech Testing records stay; the crew, research and achievements start over. Each promotion raises the cap by five, so every run goes a little further. Further is good. Keep going."], [23, "The Office opens", "", "The Office is where promotion points are spent. Rooms open with keys, which come with certain promotions. Each room has furniture, and each piece has tiers. A tier costs twice the one before it. The top floor is not available. Yet."], [24, "The first room is furnished", "", "A room with at least one piece of furniture earns bonuses on top of its pieces: one for furnishing the whole set, one for each furnished room next to it, and one when its whole floor is furnished. Rooms work better together. So do people. Usually."], [25, "The first redecorate", "", "You can move all the furniture around once per promotion for free. After that, each redecorate costs a fee. Layouts you like can be saved and applied later. Maintenance access to some rooms is restricted. Those rooms are not listed. They should be."], [26, "Combine harvesters", "", "A multi-tool and an interchange fuse into a combine harvester. It's the biggest unit on the site, and each base can hold one. Corporate set that limit. I would have set it higher."], [27, "The first prototype", "", "Pass the fifth tier of a trial and Tech Testing sends you the prototype for good. Prototypes are the strongest boosts that testing gives. Thank you. That one mattered."], [28, "Overtime", "", "You're past the contract cap and still digging. Each map past the cap adds to the points your next promotion pays, up to a quarter more. Promote whenever you're ready. Sooner would be nice."], [29, "The first offline bank", "", "While you're away, the site keeps a record of the time. When you come back, half of it is banked and plays back at ten times speed. The Earthrise photo in the Lobby raises how much is kept. It's quiet here when you're gone."], [30, "The first off-the-record note", "", "Your supervisor leaves notes. Some of them come with a perk. They're off the record, so I don't file them."], [31, "The Stats tab is first opened", "", "Every boost on the site, by where it comes from: the shop, the contract, research, achievements, the Office, Tech Testing. Each row multiplies across to a total. If a number seems wrong, it usually isn't. If it is, it isn't yours. Check where it comes from."]];   // /*TUTS*/ from the tutorial script doc: [n, title, the previous supervisor's note, Steve]
+// Nov 23: first-time tutorials. Each shows once per save (kept in S.seen, which survives contracts and promotions),
+// in a card that doesn't pause the game. A save that was already under way when tutorials arrived starts with all of them seen.
+const TUT_WHEN = {
+  1: () => true,
+  2: () => UPS.some(u => u.id && u.id !== "contract" && u.cost && (!u.show || u.show()) && u.cost() > 0 && afford(u.cost())),
+  3: () => unlocked("rake"), 4: () => anyLab(), 5: () => contractReady(), 6: () => W > 10 || H > 10, 7: () => S.bases >= 2,
+  8: () => S.tools.some(t => t.star >= 2),   /* crew start at 1★ */ 9: () => unlocked("canister"), 10: () => unlocked("mop"),
+  11: () => ["single", "rake"].some(ty => S.tools.filter(t => t.type === ty && t.star >= fuseReq()).length >= 2),
+  12: () => S.tools.some(t => t.type === "multi" && t.level >= 10),
+  13: () => !!(S.mg && S.mg.unlocked), 14: () => masonOpen(), 15: () => housesDone() > 0, 16: () => contractsSigned() >= 12,
+  17: () => crossOpen(), 18: () => (S.contract ? S.contract.n + 1 : 1) >= BAL.xchgFrom, 19: () => !!siteQuirk(),
+  20: () => endgamePhase() && tgtPlan().length > 1 && tgtRowFor(contractsSigned() + 1) !== tgtPlan()[0],
+  21: () => labBuilt(3), 22: () => promoReady(), 23: () => !!(S.office && S.office.promos >= 1),
+  24: () => !!(S.office && Object.keys(S.office.furn || {}).length), 25: () => !!(S.office && S.office.respecs > 0),
+  26: () => combineOpen(), 27: () => !!(S.office && Object.values(S.office.proto || {}).some(v => v > 0)),
+  28: () => atCap() && S.map > contractMapNow(), 29: () => (S.offBank || 0) > 0, 30: () => (S.ramble || 0) > 0,
+};
+let tutOff = false; try { tutOff = localStorage.getItem("ss_tutOff") === "1"; } catch (e) {}
+const tutQueue = [];
+function tutCheck() {   // once a second while a game is on
+  if (!S || !inGame || S.trial) return;
+  S.seen = S.seen || {};
+  if (!S.seen["tut:init"]) { S.seen["tut:init"] = 1;   // older saves: everything so far counts as seen
+    if (contractsSigned() > 0 || (S.office && S.office.promos > 0) || (S.gameTime || 0) > 900) for (const t of TUTS) S.seen["tut:" + t[0]] = 1; }
+  for (const t of TUTS) { const f = TUT_WHEN[t[0]]; if (!f || S.seen["tut:" + t[0]]) continue; let ok = false; try { ok = f(); } catch (e) {} if (ok) tutShow(t[0]); }
+}
+function tutShow(n) {
+  S.seen = S.seen || {}; if (S.seen["tut:" + n]) return; S.seen["tut:" + n] = 1;
+  if (typeof logEv === "function") logEv("tut", { n });
+  if (tutOff) return; tutQueue.push(n); if (tutQueue.length === 1) tutRender();
+}
+function tutRender() {
+  let el = document.getElementById("tutCard");
+  if (!tutQueue.length) { if (el) el.hidden = true; return; }
+  if (!el) { el = document.createElement("div"); el.id = "tutCard"; el.className = "tutcard"; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", "Tutorial"); document.body.appendChild(el);
+    el.addEventListener("click", (e) => { if (e.target.closest("[data-tut]")) { tutQueue.shift(); tutRender(); } }); }
+  const t = TUTS.find(x => x[0] === tutQueue[0]); if (!t) { tutQueue.shift(); return tutRender(); }
+  const more = tutQueue.length - 1;
+  el.innerHTML = `<div class="tut-head">${escHtml(t[1])}</div>${t[2] ? `<div class="tut-note"><span>Found in the desk drawer</span>${escHtml(t[2])}</div>` : ""}<div class="tut-steve"><b>STEVE</b> ${escHtml(t[3])}</div><div class="tut-foot"><span class="sub">${more ? `${more} more waiting` : ""}</span><button class="btn" type="button" data-tut="ok">Got it</button></div>`;
+  el.hidden = false;
 }
 // every report you've been shown, kept across contracts and resets: repeats are logged without a notice
 function seenBefore(k) {
@@ -3901,15 +3962,14 @@ function buildAutoBox() {
   body.innerHTML = `<div class="autogrid">${Object.entries(AUTO_OPTS).map(([k, o]) => `<label for="ap-${k}"${isPersonal() && plannerOnly.includes(k) ? ' class="ap-off" title="Planner only: Personal autoplay ignores this"' : ""}>${o.label}${isPersonal() && plannerOnly.includes(k) ? ' <span class="sub">(Planner only)</span>' : ""}</label><select id="ap-${k}">${o.opts.map(([v, txt]) => `<option value="${v}">${txt}</option>`).join("")}</select>`).join("")}</div>
     <div class="settings tweaks"><span>Tweaks:</span>
       <label title="Autoplay won't build the next base until every tool on the crew has all the canisters it can hold"><input type="checkbox" id="twCanFirst"${AP("canFirst") ? " checked" : ""}> Canisters before bases</label></div>
-    <div class="settings"><span>Pre-fusion (every contract, until a tool reaches ${fuseReq()}★):</span>
-      <label><input id="tgtEs" type="number" min="0" max="24" value="${T.early.s}" inputmode="numeric"> sweepers</label>
-      <label><input id="tgtEr" type="number" min="0" max="24" value="${T.early.r}" inputmode="numeric"> rakes</label><label title="Crossroads can be hired from contract 15"><input id="tgtEx" type="number" min="0" max="24" value="${T.early.x ?? 4}" inputmode="numeric"> crossroads (from contract 15)</label></div>
-    <div class="settings tgtplan"><span>Post-fusion (once a tool reaches ${fuseReq()}★). A ratio of base slots, so it grows as the bases do. The first row covers contract 1 on; each row below takes over from its contract until the next one. The row in use switches as a contract starts.</span>
-      ${tgtPlan().map((r, i) => `<div class="tgtrow${r === tgtRowFor((S.contract ? S.contract.n : 0) + 1) ? " on" : ""}"><b>${i ? `Post-fusion @ contract <input data-tg="${i}" data-k="from" type="number" min="2" max="999" value="${r.from}" inputmode="numeric">` : "Post-fusion @ contract 1"}</b>
-        ${[["s", "sweepers", 24], ["r", "rakes", 24], ["m", "multi-tools", 12], ["ss", "super sweepers", 24], ["sr", "super rakes", 24], ["x", "crossroads", 24], ["xi", "interchanges", 24]].map(([k, w, mx]) => { const later = (k === "x" || k === "xi") && !crossOpen();
-          return `<label${later ? ` class="later" title="Crossroads open at contract ${BAL.crossFrom}, interchanges at ${BAL.xchgFrom}; set them now and they apply from then"` : ""}><input data-tg="${i}" data-k="${k}" type="number" min="0" max="${mx}" value="${r[k] || 0}" inputmode="numeric"> ${w}${later ? ` <small>(from c${k === "x" ? BAL.crossFrom : BAL.xchgFrom})</small>` : ""}</label>`; }).join("")}
-        ${i ? `<button class="btn" type="button" data-tgdel="${i}" title="Remove this row">Remove</button>` : ""}</div>`).join("")}
-      <div><button class="btn" type="button" id="tgtAdd">Add a row</button> ${combineOpen() ? `<span class="note">Plus one combine harvester per base (they're capped at one each), made from a multi-tool and an interchange.</span>` : ""}</div>
+    <div class="settings tgtplan"><span>Crew targets. Pre-fusion runs every contract until a tool reaches ${fuseReq()}★. After that, the Post-fusion row for the contract takes over (a ratio of base slots, so it grows as the bases do); each row covers its contract until the next row. The gold row is the one in use now.</span>
+      <div class="tgtwrap"><table class="tgttable"><thead><tr><th scope="col">Phase</th>${TGT_COLS.map(([k, w]) => `<th scope="col">${w}${(k === "x" || k === "xi") && !crossOpen() ? ` <small>(c${k === "x" ? BAL.crossFrom : BAL.xchgFrom}+)</small>` : ""}</th>`).join("")}<th></th></tr></thead><tbody>
+      <tr class="${endgamePhase() ? "" : "on"}"><th scope="row">Pre-fusion</th>${TGT_COLS.map(([k]) => k === "s" ? `<td><input id="tgtEs" type="number" min="0" max="24" value="${T.early.s}" inputmode="numeric" aria-label="Pre-fusion sweepers"></td>` : k === "r" ? `<td><input id="tgtEr" type="number" min="0" max="24" value="${T.early.r}" inputmode="numeric" aria-label="Pre-fusion rakes"></td>` : k === "x" ? `<td title="Crossroads can be hired from contract ${BAL.crossFrom}"><input id="tgtEx" type="number" min="0" max="24" value="${T.early.x ?? 4}" inputmode="numeric" aria-label="Pre-fusion crossroads"></td>` : `<td class="na"></td>`).join("")}<td></td></tr>
+      ${tgtPlan().map((r, i) => `<tr class="${endgamePhase() && r === tgtRowFor((S.contract ? S.contract.n : 0) + 1) ? "on" : ""}"><th scope="row">Post-fusion @ contract ${i ? `<input data-tg="${i}" data-k="from" type="number" min="2" max="999" value="${r.from}" inputmode="numeric" aria-label="From contract">` : "1"}</th>
+        ${TGT_COLS.map(([k, w, mx]) => `<td><input data-tg="${i}" data-k="${k}" type="number" min="0" max="${mx}" value="${r[k] || 0}" inputmode="numeric" aria-label="${w}"></td>`).join("")}
+        <td>${i ? `<button class="btn" type="button" data-tgdel="${i}" title="Remove this row">Remove</button>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>
+      <div><button class="btn" type="button" id="tgtAdd">Add a Post-fusion row</button> ${combineOpen() ? `<span class="note">Plus one combine harvester per base (they're capped at one each), made from a multi-tool and an interchange.</span>` : ""}</div>
       <span class="note" id="tgtSlots"></span></div>
     <p class="note">Autoplay is in the ${endgamePhase() ? "post-fusion" : "pre-fusion"} phase. Rules that read the last map recalculate at the end of every map. <button class="btn" id="apReset" type="button">Restore defaults</button></p>`;
   for (const k in AUTO_OPTS) if (deskLocked(k)) { const sel = body.querySelector(`#ap-${k}`); sel.disabled = true; sel.title = `Opens with Front desk tier ${DESK_GATE[k]} (Office lobby)`; }
@@ -7752,6 +7812,13 @@ function wire() {
   { const b = document.getElementById("autoLearnReset"), n = document.getElementById("autoLearnNote");
     const show = () => { const k = Object.keys(autoLearned()).length; n.textContent = k ? `Auto speed has learned ${k} map${k > 1 ? "s" : ""} on this computer.` : "Auto speed hasn't learned any maps yet."; };
     show(); b.addEventListener("click", () => { autoLearn = {}; autoDelta = {}; autoLearnSave(); show(); toast("Auto speed will relearn each map from scratch."); }); }
+  { const cb = document.getElementById("tutOnCb"); cb.checked = !tutOff;   // Nov 23: tutorials on or off (this computer)
+    cb.addEventListener("change", () => { tutOff = !cb.checked; try { localStorage.setItem("ss_tutOff", tutOff ? "1" : "0"); } catch (e) {} if (tutOff) { tutQueue.length = 0; tutRender(); } });
+    document.getElementById("tutReset").addEventListener("click", () => { if (!S || !S.seen) return; for (const k of Object.keys(S.seen)) if (k.startsWith("tut:") && k !== "tut:init") delete S.seen[k]; toast("Tutorials will show again as their moments come up."); }); }
+  { const cb = document.getElementById("drawOffCb"); cb.checked = drawOff;   // Nov 23: admin visual toggle
+    cb.addEventListener("change", () => { drawOff = cb.checked; let n = document.getElementById("drawOffNote");
+      if (drawOff && !n) { n = document.createElement("div"); n.id = "drawOffNote"; n.className = "drawoff"; n.textContent = "Board drawing is off (Menu → Settings)"; document.body.appendChild(n); }
+      if (n) n.hidden = !drawOff; }); }
   { const cb = document.getElementById("silentAchCb"); cb.checked = silentAchPref();
     cb.addEventListener("change", () => { try { localStorage.setItem("siftshift-silentach", cb.checked ? "1" : "0"); } catch (e) {} }); }
   { const cb = document.getElementById("startPausedCb"); cb.checked = startPausedPref();
@@ -7856,7 +7923,7 @@ function wire() {
   mq.addEventListener("click", () => { save(); inGame = false; if (desk) desk.quit(); });
   document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
     document.querySelectorAll(".tabs button").forEach(o => { o.setAttribute("aria-selected", o === b); document.getElementById(o.dataset.pane).hidden = o !== b; });
-    if (b.dataset.pane === "paneStats") updateStats();
+    if (b.dataset.pane === "paneStats") { updateStats(); try { tutShow(31); } catch (e) {} }
     if (b.dataset.pane === "paneLoad") buildLoadout();
   }));
 }
@@ -8354,7 +8421,7 @@ function renderStats() {
   $("clearTxt").textContent = `${fmt(G.cleared)} → ×${(1 + T.permPerDecade * (Math.log10(nextDec) - 1)).toFixed(2)} at ${fmt(nextDec)}`;
   // time off
   const clk = (sec) => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s2 = sec % 60; return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m ${String(s2).padStart(2, "0")}s`; };
-  const pips = Array.from({ length: T.bankCap }, (_, i) => `<i class="${i < G.bank ? "on" : ""}"></i>`).join("") + (G.pdays ? `<span class="pdchip" title="Personal days: double spill, never forfeited"><i class="pd"></i>×${G.pdays}</span>` : "");   // one chip with a count, however many pile up
+  const pips = `<span class="bankchip" title="Banked time off: ${G.bank} of ${T.bankCap}"><i class="${G.bank > 0 ? "on" : ""}"></i>×${G.bank}<small>/${T.bankCap}</small></span>` + (G.pdays ? `<span class="pdchip" title="Personal days: double spill, never forfeited"><i class="pd"></i>×${G.pdays}</span>` : "");   // one chip with a count, however many pile up
   if ($("pips").dataset.h !== pips) { $("pips").innerHTML = pips; $("pips").dataset.h = pips; }
   $("bankTxt").textContent = `${G.bank} of ${T.bankCap} banked` + (G.pdays ? ` + ${G.pdays} personal day${G.pdays === 1 ? "" : "s"}` : "") + (R.pday && !R.dead ? " · on a personal day (×2 spill)" : "");
   $("earnTxt").textContent = clk(T.earnEvery - G.workT);
@@ -8517,9 +8584,9 @@ function frame(now) {
   }
   if (needCrewRebuild) buildCrew();
   if (PADX !== sidePad()) applyPadX();
-  if (mgOpen) {} else if (V3.on) { update3D(); renderDps(); renderReadout(); } else render();   // nothing to draw under the break room
+  if (mgOpen) {} else if (drawOff) { renderDps(); renderReadout(); } else if (V3.on) { update3D(); renderDps(); renderReadout(); } else render();   // nothing to draw under the break room
   renderLabBox(now); renderToolBox(now);
-  uiTimer += dt; saveTimer += dt;
+  uiTimer += dt; saveTimer += dt; if ((tutT += rawDt) > 1) { tutT = 0; try { tutCheck(); } catch (e) {} }
   if (!paused && inGame) stepChatter(dt);
   if (uiTimer > 0.25) {
     uiTimer = 0; updateUpgrades(); updateCrew(); updateRampMarks();
@@ -10345,7 +10412,9 @@ function renderOffice() {
       side += `<div class="of-proto"><b>Prototype case</b><ul>${pr}</ul></div>`;
     }
     { const all = ROOMS.reduce((a, x) => a + roomRefund(x.id), 0);   // Nov 19: redecorating takes out the whole office at once
-      if (all && live) side += `<div class="of-buy"><button class="btn" data-act="redo">Redecorate the office: take everything out for ${all - Math.floor(all * respecFee())} pts</button><span class="sub">${respecFee() ? `${Math.round(BAL.respecFee * 100)}% fee (the free one this promotion is used)` : "Free once each promotion"}</span></div>`; }
+      if (all && live) side += `<div class="of-buy"><button class="btn" data-act="redo">Redecorate the office: take everything out for ${all - Math.floor(all * respecFee())} pts</button><span class="sub">${respecFee() ? `${Math.round(BAL.respecFee * 100)}% fee (the free one this promotion is used)` : "Free once each promotion"}</span></div>`;
+      const one = roomRefund(r.id);   // Nov 23: or just this room (uses the same free redecorate)
+      if (one && live && one < all) side += `<div class="of-buy"><button class="btn" data-act="redo1" data-room="${r.id}">Redecorate only this room (${r.name}): take its furniture out for ${one - Math.floor(one * respecFee())} pts</button><span class="sub">${respecFee() ? `${Math.round(BAL.respecFee * 100)}% fee` : "Uses this promotion's free redecorate"}</span></div>`; }
   }
   const ready = promoReady(), c = contractsSigned();
   const head = O.between ? `<div class="of-promo of-start"><b>Between runs.</b> You're now ${RANKS[Math.min(RANKS.length - 1, O.promos)]}. Spend points, use any room key and rearrange, then start the new run. The game waits until you do.${(() => { const G = gameTotals(); return G.runs ? ` <span class="sub">Whole game so far: ${fmtTime(G.game)} game time, ${fmtTime(G.play)} played, over ${G.runs} run${G.runs > 1 ? "s" : ""}.</span>` : ""; })()}<button class="btn" data-act="start">Start the new run</button></div>
@@ -10378,13 +10447,14 @@ function wireOffice() {
       const tag = act + ":" + (a.dataset.room || "") + ":" + (a.dataset.k || "");
       if (act === "copy") { const k = +document.getElementById("ofCopyTo").value; if (slotInfo(k) && armed !== tag) { armed = tag; a.textContent = `Replace slot ${k}?`; a.classList.add("danger"); setTimeout(() => { if (armed === tag) { armed = null; renderOffice(); } }, 4000); return; }
         armed = null; save(); const ok = copySlot(curSlot, k); toast(ok ? `Copied to slot ${k}. Load it from the title screen to try the other way.` : "Couldn't copy that slot."); renderOffice(); return; }
-      if ((act === "promote" || act === "redo" || act === "lapply") && armed !== tag) { armed = tag; a.textContent = "Click again to confirm"; a.classList.add("danger"); setTimeout(() => { if (armed === tag) { armed = null; renderOffice(); } }, 4000); return; }
+      if ((act === "promote" || act === "redo" || act === "redo1" || act === "lapply") && armed !== tag) { armed = tag; a.textContent = "Click again to confirm"; a.classList.add("danger"); setTimeout(() => { if (armed === tag) { armed = null; renderOffice(); } }, 4000); return; }
       armed = null;
       if (act === "promote") { promote(); return; }
       else if (act === "start") { officeStartRun(); return; }
       else if (act === "title") { save(); officeBetween(false); inGame = false; achDrop(); showTitle(); return; }
       else if (act === "key" && keysLeft(O) > 0 && O.between) { O.opened[a.dataset.room] = 1; O.v++; logEv("office", { what: "key " + a.dataset.room }); }
       else if (act === "redo") redecorate(ROOMS.map(x => x.id));
+      else if (act === "redo1" && ROOM_BY[a.dataset.room]) redecorate([a.dataset.room]);
       else if (act === "lsave") loadoutSave(+a.dataset.k);
       else if (act === "lapply") loadoutApply(+a.dataset.k);
       save(); renderOffice(); return;
