@@ -1575,7 +1575,9 @@ function stepLab(dt) {   // each built research tower pulls dirt out of its cell
 }
 const ownCap = () => Math.max(BAL.maxOwned, typeof perBase === "function" && S ? 4 * perBase() : 0);
 const perBase = () => Math.min(BAL.baseCap, BAL.perBase + Math.min(S.contract ? S.contract.n : 0, Math.floor((S.map - 1) / BAL.slotEvery)));
-const contractStepFor = (k) => { for (const [upTo, st] of BAL.contractEarlySteps || []) if (k <= upTo) return st; return BAL.contractStep + Math.floor(k / BAL.contractStepEvery); };   // the step after contract k is signed
+const contractStepFor = (k) => { const j = offSched(); if (k <= 10) return 1; if (k <= 20) return j >= 4 ? 1 : 2;   // Nov 23: the Job board ladder: no rise, then 1/2/2, 1/2/1, 1/1/1
+  for (const [upTo, st] of BAL.contractEarlySteps || []) if (k <= upTo) return st;
+  return j >= 4 ? 1 : j === 3 ? 1 : j === 2 ? 2 : j === 1 ? BAL.contractStep : BAL.contractStep + Math.floor(k / BAL.contractStepEvery); };   // the step after contract k is signed
 const contractMapAt = (n) => { let m = BAL.contractMap; for (let k = 1; k <= n; k++) m += contractStepFor(k); return m; };   // n = contracts signed
 const contractMapNow = () => contractMapAt(S.contract ? S.contract.n : 0);
 const contractBonus = () => (BAL.contractDust + BAL.contractPerMap * Math.max(0, S.map - contractMapNow()) * offPlate()) * achB("contract") + (gagDone("brochure") ? 0.01 : 0) + ((siteQuirk() || {}).contract || 0);   // Homeowners: +1% of the bonus each
@@ -2390,8 +2392,7 @@ function ramble() {
 // layers per cell on map n: n², deepening faster as maps go on (+20% at map 10, +60% at 30, ×2 at 50, ×3 at 100)
 const depthOf = (n) => Math.max(1, Math.round(n * n * (1 + n / 50)));
 const lateNorm = () => { const n = S.contract ? S.contract.n : 0; return n <= BAL.depthFrom ? 1 : depthScale() * statMult() / (Math.pow(BAL.contractStat, Math.min(BAL.depthFrom, BAL.statTaperAt))); };   // 1 through contract 21; then depth growth × crew-stat growth since
-const depthScale = () => Math.pow(BAL.depthGrow - offPlans(), Math.max(0, (S.contract ? S.contract.n : 0) - BAL.depthFrom));
-const plansSale = () => { const p = offPlans(); return p ? Math.pow(BAL.depthGrow / (BAL.depthGrow - p), Math.max(0, (S.contract ? S.contract.n : 0) - BAL.depthFrom)) : 1; };   // Nov 23: shallower maps sell richer, so income per map is unchanged
+const depthScale = () => Math.pow(BAL.depthGrow, Math.max(0, (S.contract ? S.contract.n : 0) - BAL.depthFrom));
 const depth = () => Math.max(1, Math.round(depthOf(S.map) * depthScale()));   // v7: deeper every contract
 const epsU = () => depth() * 1e-9;
 const maxW = (t) => 2 + t.u.w;
@@ -2918,7 +2919,7 @@ function brickHouseCheck() {   // enough bricks finishes a house on an old lot a
   if (n && inGame) { toast(`Bricks built ${n === 1 ? "a house" : n + " houses"} on your old lots (${housesDone()} finished). Dirt sells +${Math.round(BAL.hoaPer * 100 * housesDone())}% in HOA dues.`);
     try { pushPersonal(BRICK_LINES[((S.brickHouses || 1) - 1) % BRICK_LINES.length]); } catch (e) {} firstTime("first brick house"); }
 }
-const salePrice = () => (1 + BAL.salePerLevel * S.up.sale + offTill()) * (S.contract ? S.contract.dustMult : 1) * R("market") * achB("sale") * offSale() * plansSale();
+const salePrice = () => (1 + BAL.salePerLevel * S.up.sale + offTill()) * (S.contract ? S.contract.dustMult : 1) * R("market") * achB("sale") * offSale();
 function sellCarry(t) {
   if (t.carry > 0) {
     t.salesSinceSwap = (t.salesSinceSwap || 0) + 1;
@@ -10039,7 +10040,7 @@ const ROOMS = [
   { id: "fac", name: "Facilities", floor: 4, stat: "Break room spill", about: "The Break room, Tech Testing and the gym.", pieces: [
     { id: "heater", name: "Space heater", tiers: ["Desk fan", "Space heater", "HVAC"], base: 12, layer: "Base", fx: (t) => `Overclock cap: contract + ${t}` },
     { id: "lunch", name: "Lunch table", tiers: ["Folding table", "Picnic table", "Cafeteria"], base: 12, layer: "Base", fx: (t) => `Tech Testing lunch at ${4 + t / 2}h` },
-    { id: "plans", name: "Site plans", tiers: ["Sketch", "Survey", "Blueprints"], base: 100, need: 55, layer: "Rate", fx: (t) => `From contract ${BAL.depthFrom + 1} on, maps get ×${(BAL.depthGrow - 0.005 * t).toFixed(3)} deeper a contract (normally ×${BAL.depthGrow}); each layer sells for more to make up the difference` },   // Nov 23: the map-requirement lever
+    { id: "sched", name: "Job board", tiers: ["Corkboard", "Whiteboard", "Planner", "Scheduler"], base: 100, need: 55, layer: "Rate", fx: (t) => `Maps needed per contract: ${["+1 / +2 / +3, rising +1 every 50 contracts", "+1 / +2 / +3, no rise", "+1 / +2 / +2", "+1 / +2 / +1", "+1 / +1 / +1"][t]} (contracts 1–10 / 11–20 / 21+)` },   // Nov 23: the map-requirement ladder (James, Nov 20)
     { id: "trophy", name: "Trophy shelf", tiers: ["Shelf", "Trophy case", "Hall of trophies"], base: 20, layer: "Mult", fx: (t) => `Achievement boosts ×${(1 + 0.25 * t).toFixed(2)}` },
     { id: "gym", name: "Gym", tiers: ["Treadmill", "Weights", "Full gym"], base: 150, need: 45, layer: "Rate", fx: (t) => `Game speed +${(0.02 * t).toFixed(2)}% per Break room level bought` },
   ] },
@@ -10120,7 +10121,7 @@ function oc() {
     packet: t("hr.packet"), photo: 0.25 * t("hr.photo"), xp: room.hr,
     conv: 1 + 0.1 * t("rd.conv"), grant: t("rd.grant") ? (pk.grant || "suction") : null, grantM: 1 + 0.25 * t("rd.grant"), kit: 1 + 0.2 * t("rd.kit"), sup: t("rd.super"), res: room.rd,
     till: 0.25 * t("fin.till"), plate: 1 + 0.1 * t("fin.plate"), coupon: 0.006 * t("fin.coupon"), piggy: t("fin.piggy"), sale: room.fin * Math.pow(1 + 0.005 * t("fin.ticker"), n),
-    heater: t("fac.heater"), lunch: 1800 * t("fac.lunch"), trophy: 1 + 0.25 * t("fac.trophy"), gym: 0.0002 * t("fac.gym"), coin: room.fac, plans: 0.005 * t("fac.plans"),
+    heater: t("fac.heater"), lunch: 1800 * t("fac.lunch"), trophy: 1 + 0.25 * t("fac.trophy"), gym: 0.0002 * t("fac.gym"), coin: room.fac, sched: t("fac.sched"),
     chairs: 0.05 * t("lobby.chairs"), speed: room.lobby, proto: (O && O.proto) || {} });
   return OC;
 }
@@ -10133,7 +10134,7 @@ const offTravel = () => oc().travel;
 const offTank = () => oc().tank;
 const offBrick = () => oc().brick;
 const offTill = () => oc().till;
-const offPlans = () => oc().plans || 0;   // Nov 23: Site plans slow the depth growth
+const offSched = () => (typeof oc === "function" && S && S.office ? oc().sched : 0) || 0;   // Nov 23: Job board tier
 const offSale = () => oc().sale;
 const offXP = () => oc().xp;
 const offRes = (id) => { const o = oc(); return o.res * (o.grant === id ? o.grantM : 1); };
