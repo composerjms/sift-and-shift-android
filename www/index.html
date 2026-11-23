@@ -8405,7 +8405,8 @@ function renderStats() {
   const hm = hullMax();
   $("hullBar").style.width = (100 * R.hp / hm).toFixed(1) + "%";
   $("hullTxt").textContent = `${fmt(Math.ceil(R.hp))} / ${fmt(hm)}`;
-  $("waveTxt").textContent = R.dead ? `fell on ${R.wave}` : `${R.wave} · ${R.queue.length ? "incoming" : "holding"}`;
+  { const full = R.foes.length >= T.fieldCap, st = R.queue.length ? (full ? "waiting" : "incoming") : "holding", el = $("waveTxt");   // Nov 23: waiting = the rest of the wave is held back until the field has room
+    el.textContent = R.dead ? `fell on ${R.wave}` : `${R.wave} · ${st}`; el.title = R.dead ? "" : st === "waiting" ? "The field is full: the rest of this wave waits until there's room" : st === "incoming" ? "This wave is still arriving" : "The whole wave is on the field"; }
   $("runState").textContent = R.dead ? "run over" : `wave ${R.wave}`;
   { const full = R.foes.length >= T.fieldCap, el = $("enTxt"); el.textContent = `${fmt(R.foes.length)}${full ? " (full)" : ""} · ${fmt(R.kills)} cleared`; el.title = full ? "The field is full: the next wave waits until there's room" : ""; }
   { const w = Math.max(1, R.wave), bw = Math.ceil(w / 5) * 5;
