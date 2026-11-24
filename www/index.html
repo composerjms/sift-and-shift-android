@@ -1665,7 +1665,7 @@ function signContract() {
   }
   needCrewRebuild = true;
   try { buildUpgrades(); buildCrew(); save(); } catch (e) {}
-  toast(`Contract ${S.contract.n + 1} signed. Dirt now sells at ×${S.contract.dustMult.toFixed(2)}, crew stats ×${statMult().toFixed(2)}.`);
+  toast(`Contract ${S.contract.n + 1} signed. Dirt now sells at ×${fmtX(S.contract.dustMult)}, crew stats ×${statMult().toFixed(2)}.`);
   try { const pd = MG.personalDay(); if (pd) mgToast(pd); } catch (e) {}   // a personal day for the Break room
   milestoneSave();
   autoSpeedReset();   // Auto speed: each contract starts flat out, then eases down to what the screen can manage
@@ -3666,7 +3666,7 @@ const geo = (c, n) => Math.ceil(c.base * Math.pow(c.growth, n));
 const UPS = [
   { sec: "Contract", show: () => unlocked("contractOpen") || S.contract.n > 0 },
   { id: "contract", name: "Sign new contract", confirm: true, show: () => unlocked("contractOpen") || S.contract.n > 0,
-    desc: () => `Start over on a fresh site at map 1, with one sweeper. Dirt sells ×${(1 + contractBonus()).toFixed(2)} better (total ×${(S.contract.dustMult * (1 + contractBonus())).toFixed(2)}), crew base stats ×${BAL.contractStat} (total ×${(statMult() * BAL.contractStat).toFixed(2)}), and bases can grow to ${BAL.perBase + S.contract.n + 1} slots (+1 every ${BAL.slotEvery} maps). +${Math.round(BAL.contractPerMap * 100)}% dirt bonus for each map past ${contractMapNow()} when you sign.${autoplay && AP("contracts") !== "never" ? " Autoplay signs this for you mid-map, the moment its trigger is met; it doesn't wait for the current map to end." : ""}`,
+    desc: () => `Start over on a fresh site at map 1, with one sweeper. Dirt sells ×${(1 + contractBonus()).toFixed(2)} better (total ×${fmtX(S.contract.dustMult * (1 + contractBonus()))}), crew base stats ×${BAL.contractStat} (total ×${(statMult() * BAL.contractStat).toFixed(2)}), and bases can grow to ${BAL.perBase + S.contract.n + 1} slots (+1 every ${BAL.slotEvery} maps). +${Math.round(BAL.contractPerMap * 100)}% dirt bonus for each map past ${contractMapNow()} when you sign.${autoplay && AP("contracts") !== "never" ? " Autoplay signs this for you mid-map, the moment its trigger is met; it doesn't wait for the current map to end." : ""}`,
     lvl: () => `Contract ${S.contract.n + 1}`, cost: () => 0, max: () => false,
     can: () => contractReady() || (atCap() ? `Contract cap: ${contractCap()} contracts this run. Promote in the Office to raise it by ${BAL.capStep}; maps past ${contractMapNow()} count as overtime.` : `Reach map ${contractMapNow()} (now map ${S.map}).`), buy: () => signContract() },
   { sec: "Crew" },
@@ -4772,7 +4772,7 @@ function contractHistoryHTML() {
   if (!h.length) return `<p class="note">No contracts signed yet.</p>`;
   const rows = h.map((e, i) => {
     const m = e.sum, len = m ? m.len : e.at - (i ? h[i - 1].at : 0);
-    return `<tr><td>${i + 1}</td><td>${capFirst(siteName(i))}</td><td class="n">${fmtTime(len)}</td><td class="n">${e.map}</td><td class="n">${m ? fmt(m.dirt) : "—"}</td><td class="n">${m ? fmtMoney(m.money) : "—"}</td><td>${m && m.mvp ? `${escHtml(m.mvp.name)} ${Math.round(m.mvp.share * 100)}%` : "—"}</td><td class="n">${m ? `+${m.res}` : "—"}</td><td class="n">+${Math.round((e.gain - 1) * 100)}%${m ? ` → ×${m.multTo.toFixed(2)}` : ""}</td></tr>`;
+    return `<tr><td>${i + 1}</td><td>${capFirst(siteName(i))}</td><td class="n">${fmtTime(len)}</td><td class="n">${e.map}</td><td class="n">${m ? fmt(m.dirt) : "—"}</td><td class="n">${m ? fmtMoney(m.money) : "—"}</td><td>${m && m.mvp ? `${escHtml(m.mvp.name)} ${Math.round(m.mvp.share * 100)}%` : "—"}</td><td class="n">${m ? `+${m.res}` : "—"}</td><td class="n">+${Math.round((e.gain - 1) * 100)}%${m ? ` → ×${fmtX(m.multTo)}` : ""}</td></tr>`;
   }).reverse(), P = pager("hist", rows);
   return `<div class="tblwrap"><table class="st"><thead><tr><th>#</th><th>Site</th><th class="n">Length</th><th class="n" title="The map it was signed on">Signed</th><th class="n">Dirt</th><th class="n">Money</th><th>Top digger</th><th class="n" title="Research levels gained">Research</th><th class="n" title="Dirt value bonus from signing, and the total after">Dirt value</th></tr></thead><tbody>${P.rows.join("")}</tbody></table></div>${P.ctl}`;
 }
@@ -6915,7 +6915,7 @@ function showContractSummary(m) {
       </dl></div>
       <div><h3>Contract ${m.n + 1}: ${capFirst(siteName(m.n))}</h3><dl>
         <dt>New site</dt><dd class="txt">${escHtml(siteOf(m.n).pitch)}</dd>
-        <dt>Dirt value</dt><dd>×${m.multFrom.toFixed(2)} → <b>×${m.multTo.toFixed(2)}</b> (+${Math.round((m.gain - 1) * 100)}%)</dd>
+        <dt>Dirt value</dt><dd>×${fmtX(m.multFrom)} → <b>×${fmtX(m.multTo)}</b> (+${Math.round((m.gain - 1) * 100)}%)</dd>
         <dt>Crew stats</dt><dd>×${(statMult() / BAL.contractStat).toFixed(2)} → <b>×${statMult().toFixed(2)}</b></dd>
         <dt>Board size cap</dt><dd><b>${board}×${board}</b> (${board - 1}×${board - 1} before)</dd>
         <dt>Base slots</dt><dd>up to <b>${slots}</b> per base (${slots - 1} before)</dd>
@@ -7048,7 +7048,7 @@ function renderReadout() {
   document.getElementById("rCarry").textContent = fmt(S.tools.reduce((a, t) => a + t.carry, 0));
   document.getElementById("rMap").textContent = S.map;
   if (S.trial) document.getElementById("subLine").textContent = `Tech Testing · ${TT_BY[S.trial.id].name} on ${siteName(ttPlanet())} · crew ×${statMult().toFixed(2)} · no site conditions while testing · your contract ${S.contract.n + 1} is paused`;
-  else if (S.contract.n > 0) document.getElementById("subLine").textContent = `Contract ${S.contract.n + 1} · ${capFirst(siteName(S.contract.n))} · dirt ×${S.contract.dustMult.toFixed(2)} · crew ×${statMult().toFixed(2)} · ${perBase()} slots per base${siteQuirk() ? ` · ${siteQuirk().name}: ${siteQuirk().desc}` : ""}`;
+  else if (S.contract.n > 0) document.getElementById("subLine").textContent = `Contract ${S.contract.n + 1} · ${capFirst(siteName(S.contract.n))} · dirt ×${fmtX(S.contract.dustMult)} · crew ×${statMult().toFixed(2)} · ${perBase()} slots per base${siteQuirk() ? ` · ${siteQuirk().name}: ${siteQuirk().desc}` : ""}`;
   else { const el = document.getElementById("subLine"), t = "Contract 1 · The Moon · Map n is n² layers deep, plus 2% more per map (map 50 is twice as deep). The board starts at 10×10 and can grow."; if (el.textContent !== t) el.textContent = t; }   // Nov 17: contract 1 after a promotion (or a new game) resets the line too
   { const el = document.getElementById("subLine"); if (el.title !== el.textContent) el.title = el.textContent; }
   { const e = epsU(); let left = 0; for (let i = 0; i < W * H; i++) if (S.cells[i] > e) left += S.cells[i];
@@ -7181,6 +7181,7 @@ let mapMaxSpill = 0;   // the worst spill seen on any cell this map, as % slower
 function remaining() { let s = 0; for (const v of S.cells) s += v; return s; }
 
 // ---------- utils ----------
+function fmtX(v) { return v < 1000 ? (+v).toFixed(2) : fmt(v); }   // Nov 23: multipliers: two decimals while small, then K / M / B / Qi like everything else
 function fmt(n) {
   if (!isFinite(n)) return "0";
   n = Math.round(n * 1e6) / 1e6;
