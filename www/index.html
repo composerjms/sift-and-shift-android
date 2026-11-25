@@ -402,6 +402,8 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .st.mt td.mt-none { color: var(--muted); opacity: 0.5; } .mt-idle { color: var(--muted); opacity: 0.7; } .st.mt td.mt-neg { color: #ff8a80; }
 .st.mt .mt-tot { color: var(--gold); border-left: 1px solid var(--line); } .mt-bar { display: inline-block; width: 46px; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-right: 6px; vertical-align: middle; overflow: hidden; } .mt-bar i { display: block; height: 100%; background: var(--gold); }
 .t-opt { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: baseline; margin: 10px 0; text-align: left; } .t-opt input { grid-row: 1 / span 2; } .t-opt .note { grid-column: 2; margin: 0; }
+.of-cheap { outline: 1px solid var(--gold); outline-offset: -1px; } .of-cheaptag { margin-left: 6px; padding: 0 6px; border-radius: 4px; background: rgba(232,193,90,0.15); color: var(--gold); font-size: 0.7rem; font-weight: 600; }
+.of-cheapline { margin: 0 0 8px; padding: 6px 10px; border: 1px dashed var(--gold); border-radius: 6px; font-size: 0.85rem; color: var(--fg); }
 .tutcard { position: fixed; left: 16px; bottom: 16px; z-index: 95; width: min(420px, calc(100vw - 32px)); max-height: 70vh; overflow: auto; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.45); font-size: 0.86rem; line-height: 1.45; }
 .tutcard .tut-head { font-weight: 600; margin-bottom: 8px; color: var(--fg); }
 .tutcard .tut-note { font-style: italic; color: #d9cfb4; background: rgba(232,193,90,0.06); border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; }
@@ -10335,6 +10337,11 @@ function officeStartRun() {   // leave the Office: the new run's contract 1 begi
   toast(`Run ${O.promos + 1} started: contract 1.${autoplay ? " Autoplay has it from here." : ""}`);
 }
 // ---- buying, rearranging and loadouts ----
+function cheapestPiece() {   // Nov 24 (testing): the cheapest next tier in any open room, gates allowed for
+  const O = officeS(); let best = null;
+  for (const r of ROOMS) { if (r.soon || !roomOpen(r.id)) continue; for (const p of r.pieces) { const t = O.furn[p.key] || 0; if (t >= p.tiers.length || (p.need && O.best < p.need)) continue; const c = pieceCost(p, t); if (!best || c < best.cost) best = { p, t, cost: c, room: r }; } }
+  return best;
+}
 function canBuy(p) {
   const O = officeS(), t = O.furn[p.key] || 0;
   if (!O.between) return "Between runs only";
@@ -10427,11 +10434,12 @@ function renderOffice() {
   const live = !!O.between;
   if (!st.open) side += `<p class="note">${st.note}</p>${st.can && live ? `<button class="btn" data-act="key" data-room="${r.id}">Open with a room key</button>` : ""}`;
   else {
+    const cheap = cheapestPiece();
     side += r.pieces.map(p => {
-      const t = O.furn[p.key] || 0, max = t >= p.tiers.length, ok = canBuy(p), cost = max ? 0 : pieceCost(p, t);
+      const isCheap = cheap && cheap.p === p, t = O.furn[p.key] || 0, max = t >= p.tiers.length, ok = canBuy(p), cost = max ? 0 : pieceCost(p, t);
       const pick = p.choice === "crew" ? `<label class="of-pick">For <select data-pick="plaque"${live ? "" : " disabled"}>${CREW_GROUPS.map(([v, l]) => `<option value="${v}"${(O.pick.plaque || "sweep") === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>`
         : p.choice === "track" ? `<label class="of-pick">For <select data-pick="grant"${live ? "" : " disabled"}>${RESEARCH.map(x => `<option value="${x.id}"${(O.pick.grant || "suction") === x.id ? " selected" : ""}>${x.name}</option>`).join("")}</select></label>` : "";
-      return `<div class="of-piece${t ? " has" : ""}"><div class="of-ph"><b>${t ? p.tiers[t - 1] : p.name}</b>${t ? `<span class="of-slot">${p.name}</span>` : ""}<span class="of-layer">${p.layer}</span><span class="of-pips">${p.tiers.map((x, k) => `<i class="${k < t ? "on" : ""}" title="${x}"></i>`).join("")}</span></div>
+      return `<div class="of-piece${t ? " has" : ""}${isCheap ? " of-cheap" : ""}"><div class="of-ph"><b>${t ? p.tiers[t - 1] : p.name}</b>${isCheap ? `<span class="of-cheaptag">Cheapest</span>` : ""}${t ? `<span class="of-slot">${p.name}</span>` : ""}<span class="of-layer">${p.layer}</span><span class="of-pips">${p.tiers.map((x, k) => `<i class="${k < t ? "on" : ""}" title="${x}"></i>`).join("")}</span></div>
         <div class="of-fx">${t ? p.fx(t) : `<span class="sub">${p.name}: ${p.fx(1)}</span>`}</div>${pick}
         ${max ? `<div class="of-buy sub">All ${p.tiers.length} tier${p.tiers.length > 1 ? "s" : ""} bought</div>` : `<div class="of-buy"><button class="btn" data-buy="${p.key}"${ok === true ? "" : " disabled"}>${t ? "Upgrade to " + p.tiers[t] : "Buy " + p.tiers[0]} · ${cost} pts</button>${t ? `<span class="sub">Next: ${p.fx(t + 1)}</span>` : ""}${ok !== true && ok !== "Not enough points" && ok !== "Between runs only" ? `<span class="sub">${ok}</span>` : ""}</div>`}</div>`;
     }).join("");
@@ -10445,7 +10453,8 @@ function renderOffice() {
       if (one && live && one < all) side += `<div class="of-buy"><button class="btn" data-act="redo1" data-room="${r.id}">Redecorate only this room (${r.name}): take its furniture out for ${one - Math.floor(one * respecFee())} pts</button><span class="sub">${respecFee() ? `${Math.round(BAL.respecFee * 100)}% fee` : "Uses this promotion's free redecorate"}</span></div>`; }
   }
   const ready = promoReady(), c = contractsSigned();
-  const head = O.between ? `<div class="of-promo of-start"><b>Between runs.</b> You're now ${RANKS[Math.min(RANKS.length - 1, O.promos)]}. Spend points, use any room key and rearrange, then start the new run. The game waits until you do.${(() => { const G = gameTotals(); return G.runs ? ` <span class="sub">Whole game so far: ${fmtTime(G.game)} game time, ${fmtTime(G.play)} played, over ${G.runs} run${G.runs > 1 ? "s" : ""}.</span>` : ""; })()}<button class="btn" data-act="start">Start the new run</button></div>
+  const ch = O.between ? cheapestPiece() : null, chTxt = ch ? `<div class="of-cheapline">Cheapest now: <b>${ch.t ? ch.p.tiers[ch.t] : ch.p.tiers[0]}</b> (${ch.p.name}, ${ch.room.name}) · ${ch.cost} pts${ch.cost > O.pts ? " · not enough points yet" : ""}${keysLeft(O) > 0 ? " · you also have a room key to use" : ""}</div>` : "";   // Nov 24: testing aid
+  const head = O.between ? `${chTxt}<div class="of-promo of-start"><b>Between runs.</b> You're now ${RANKS[Math.min(RANKS.length - 1, O.promos)]}. Spend points, use any room key and rearrange, then start the new run. The game waits until you do.${(() => { const G = gameTotals(); return G.runs ? ` <span class="sub">Whole game so far: ${fmtTime(G.game)} game time, ${fmtTime(G.play)} played, over ${G.runs} run${G.runs > 1 ? "s" : ""}.</span>` : ""; })()}<button class="btn" data-act="start">Start the new run</button></div>
       <div class="of-copy sub">Try it more than one way: copy this moment to another slot first. <select id="ofCopyTo" aria-label="Slot to copy to">${SLOTS.filter(k => k !== curSlot).map(k => { const r = slotInfo(k); return `<option value="${k}" title="${r ? "Replaces " + escHtml(slotLine(r)) : "Empty slot"}">Slot ${k}${r ? " (replace)" : " (empty)"}</option>`; }).join("")}</select><button class="btn" data-act="copy">Copy</button><button class="btn" data-act="title" title="Saves here, in the Office. Loading this slot again brings you back to this screen.">Save &amp; return to title</button></div>`
     : `<div class="of-promo">${ready ? `<b>Promotion available:</b> +${promoPts()} points (${c} contracts × (1 + ${(() => { try { return housesDone(); } catch (e) { return 0; } })()} houses ÷ 25)${overtimeB() > 0 ? `, +${Math.round(overtimeB() * 100)}% for ${overtimeMaps()} overtime maps` : ""}). The next run's cap and promotion: contract ${Math.min(BAL.capMax, promoAt() + BAL.capStep)}. The run starts over at contract 1: crew, research, contracts, the Break room, achievements and story all reset. You keep the office, its points, furniture and prototypes, and your Tech Testing records, and you arrange the office before the new run starts. <button class="btn danger" data-act="promote">Take the promotion</button>`
       : S.trial ? "Promotions wait until the trial is over." : `Promotion opens once contract ${promoAt()} is complete (${c} so far)${BAL.contractCap ? `, and that's also this run's cap: no signing past it` : ""}. Points = contracts completed × (1 + houses ÷ 25), plus overtime: maps past the cap add up to +${Math.round(BAL.overtimeMax * 100)}%. Each promotion moves the next one ${BAL.capStep} contracts further.`} Furniture is bought and moved between runs; this is a look only.</div>`;
