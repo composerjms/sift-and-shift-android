@@ -632,6 +632,86 @@ select {
 /* title screen */
 html { overflow-x: clip; }   /* Nov 26: no sideways wobble on phones */
 html:has(#titleScreen:not([hidden])), html:has(#tapeWrap), html:has(#mgRoom:not([hidden])) { overflow: hidden; }   /* a full-screen card: the page behind it doesn't scroll */
+/* ===== Nov 26: portrait phone layout (body.phone): one view at a time, picked from the bottom bar ===== */
+body:not(.phone) .ph-only { display: none !important; }
+body.phone { padding: 0; margin: 0; overflow: hidden; }
+body.phone .main > *, body.phone .board-col > *, body.phone .boardrow { min-width: 0; max-width: 100%; }
+body.phone .bulkbar .note { display: none; }
+body.phone .ph-bases button { min-height: 44px; height: 48px; padding: 2px 4px; line-height: 1.15; }
+body.phone .ph-bases small { font: 0.75rem var(--f-mono); color: var(--muted); }
+body.phone .panel table { font-size: 0.8rem; }
+body.phone .panel .pane { overflow-x: hidden; }
+body.phone .panel .pane :is(table) { display: block; overflow-x: auto; max-width: 100%; }
+body.phone .controls .btn { padding: 0 8px; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+body.phone .ph-speed { min-width: 76px; flex: none; }
+body.phone #pauseBtn, body.phone #menuBtn { flex: none; width: 44px; padding: 0; font-size: 0; display: grid; place-items: center; }
+body.phone #pauseBtn::before { content: "\275A\275A"; font-size: 0.8rem; letter-spacing: -1px; }
+body.phone #pauseBtn[data-p="1"]::before { content: "\25B6"; font-size: 1rem; letter-spacing: 0; }
+body.phone #menuBtn::before { content: "\2630"; font-size: 1.2rem; }
+body.phone .panel .pane { align-content: start; justify-content: stretch; }
+body.phone #officeBtn { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+body.phone #autoBtn { flex: none; }
+body.phone .wrap { height: 100dvh; max-width: none; display: flex; flex-direction: column; gap: 8px; padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 0; box-sizing: border-box; overflow: hidden; }
+body.phone header.top { gap: 8px; flex: none; }
+body.phone .brand, body.phone #speedSeg, body.phone #pctBtn, body.phone #crewVisBtn, body.phone #autoSetBtn, body.phone #musicBtn, body.phone #ttBtn, body.phone #mgBtn, body.phone .dps { display: none !important; }
+body.phone .controls { flex-wrap: nowrap; gap: 6px; width: 100%; }
+body.phone .controls .btn { min-height: 40px; padding: 0 10px; white-space: nowrap; }
+body.phone #menuBtn { margin-left: auto; }
+.ph-speed { min-height: 40px; min-width: 92px; padding: 0 8px; background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; font-family: var(--f-mono); font-size: 0.95rem; }
+body.phone .readout { flex: none; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 0; }
+body.phone .readout > div { padding: 5px 2px; min-width: 0; }
+body.phone .readout > div:has(#rDust), body.phone .readout > div:has(#rCarry), body.phone .readout > div:has(#rDepth), body.phone .readout > div:has(#rRate), body.phone .readout > div:has(#rSize), body.phone .readout > div:has(#rCellT) { display: none !important; }
+body.phone .readout .lbl { font-size: 0.6rem; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.phone .readout .val { font-size: 0.9rem; white-space: nowrap; }
+body.phone .readout .val small, body.phone .readout .sub { display: none; }
+body.phone .main { flex: 1 1 0; min-height: 0; display: flex !important; flex-direction: column; gap: 0; }
+body.phone .board-col { flex: 1 1 0; min-height: 0; min-width: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+body.phone .board-col > .foot-btns, body.phone .depthcol, body.phone .perf-under { display: none !important; }
+body.phone .boardrow { flex: 1 1 0; min-height: 0; margin: 0; align-items: center; justify-content: center; }
+body.phone .board-frame { flex: none; max-width: none; }
+.ph-maphead { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: var(--f-display); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ph-maphead .seg button { min-height: 34px; padding: 0 14px; }
+.ph-mapinfo { font-size: 0.8rem; color: var(--muted); padding-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body.phone .board-col > .toast, body.phone .board-col > .chatter { left: 8px; }
+body.phone:not([data-pv="map"]) .board-col { flex: 0 0 0; overflow: visible; }
+body.phone:not([data-pv="map"]) .board-col > :not(.csum-wrap):not(.ach-pop):not(.watch-hud):not(.watch-exit):not(.watch-shop) { display: none !important; }
+body.phone[data-pv="map"] .main > .panel { display: none !important; }
+body.phone .panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; border: 0; background: transparent; }
+body.phone .panel > .tabs, body.phone .panel > .report-card { display: none !important; }
+body.phone .panel .pane { flex: 1 1 0; min-height: 0; max-height: none; overflow-y: auto; padding: 4px 0 12px; }
+.ph-sub { display: flex; gap: 6px; padding: 2px 0 8px; }
+.ph-sub button { min-height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); color: var(--fg); font: 600 0.9rem var(--f-body); }
+.ph-sub button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); background: rgba(159, 211, 255, 0.12); }
+body.phone:not([data-pv="stats"]) #phStatsSub { display: none !important; }
+.ph-nav { flex: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); margin: 0 -10px; border-top: 1px solid var(--line); background: var(--panel); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.ph-nav button[hidden] { display: none; }
+.ph-nav button { min-height: 58px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: transparent; border: 0; border-top: 2px solid transparent; color: var(--muted); font: 600 0.66rem var(--f-body); letter-spacing: 0.06em; text-transform: uppercase; }
+.ph-nav svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ph-nav button[aria-pressed="true"] { color: var(--accent); border-top-color: var(--accent); }
+body.phone .wrap > .savebox:not([hidden]) { position: fixed; inset: 0; z-index: 70; margin: 0; border-radius: 0; overflow-y: auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--bg); }
+.ph-menu { border-bottom: 1px solid var(--line); padding-bottom: 10px; margin-bottom: 4px; }
+.ph-menu .btn { min-height: 44px; }
+/* upgrades: names and prices only; the description opens from an info button */
+.ph-info { display: none; }
+body.phone .up .ph-info { display: inline-grid; place-items: center; width: 40px; min-height: 40px; padding: 0; grid-row: 1; grid-column: 2; font: 600 1rem var(--f-mono); color: var(--muted); border-radius: 50%; }
+body.phone #paneUp .up { grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; padding: 6px 6px 6px 10px; }
+body.phone #paneUp .up > p { display: none; }
+body.phone #paneUp .up .buy { grid-row: 1; grid-column: 3; min-width: 96px; min-height: 40px; }
+.ph-sheet { position: fixed; inset: 0; z-index: 1500; background: rgba(6, 8, 11, 0.72); display: flex; align-items: flex-end; padding: 12px; }
+.ph-sheet[hidden] { display: none; }
+.ph-sheet .card { width: 100%; box-sizing: border-box; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px; margin-bottom: env(safe-area-inset-bottom, 0px); }
+.ph-sheet h2 { margin: 0; font: 600 1.25rem var(--f-display); }
+.ph-sheet .lvl { font: 0.85rem var(--f-mono); color: var(--muted); }
+.ph-sheet p { margin: 0; color: #c9ced6; line-height: 1.5; }
+.ph-sheet .row { display: flex; gap: 8px; } .ph-sheet .row .btn { flex: 1; min-height: 48px; font-size: 1rem; }
+/* crew: one base at a time */
+.ph-bases { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 4px 0 8px; }
+.ph-bases button { background: var(--panel); border: 0; border-right: 1px solid var(--line); color: var(--fg); font: 600 0.9rem var(--f-body); }
+.ph-bases button:last-child { border-right: 0; }
+.ph-bases button[aria-pressed="true"] { background: rgba(159, 211, 255, 0.12); color: var(--accent); }
+body:not(.phone) .ph-bases { display: none; }
+body.phone #paneCrew[data-cb="0"] [data-crewbase]:not([data-crewbase="0"]), body.phone #paneCrew[data-cb="1"] [data-crewbase]:not([data-crewbase="1"]),
+body.phone #paneCrew[data-cb="2"] [data-crewbase]:not([data-crewbase="2"]), body.phone #paneCrew[data-cb="3"] [data-crewbase]:not([data-crewbase="3"]) { display: none !important; }
 .title-screen { overscroll-behavior: contain; position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 16, 0.96); overflow-y: auto; }
 .title-card select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }   /* a long option no longer stretches the card */
 .title-card { grid-template-columns: minmax(0, 1fr); }   /* the card's single column can never be pushed wider than the card */
@@ -886,7 +966,7 @@ table.kvt td.n { text-align: left; }
       <span class="sub" id="subLine">Contract 1 · The Moon · Map <i>n</i> is <i>n</i>² layers deep, plus 2% more per map (map 50 is twice as deep). The board starts at 10×10 and can grow.</span>
     </div>
     <div class="controls">
-      <div class="seg" id="speedSeg" role="group" aria-label="Game speed"></div><span class="chip" id="offBankChip" hidden title="Game time banked while you were away. It plays out on top of your speed until it's used up; pausing pauses it too."></span>
+      <select id="phSpeed" class="ph-only ph-speed" aria-label="Game speed"></select><div class="seg" id="speedSeg" role="group" aria-label="Game speed"></div><span class="chip" id="offBankChip" hidden title="Game time banked while you were away. It plays out on top of your speed until it's used up; pausing pauses it too."></span>
       <button class="btn" id="pauseBtn" title="Space bar pauses and resumes too">Pause</button>
       <button class="btn" id="pctBtn" aria-pressed="false">Show %</button><button class="btn" id="crewVisBtn" aria-pressed="false" title="2D: hide the crew and just watch the board change">Hide crew</button>
       <button class="btn" id="autoBtn" aria-pressed="false" title="Testing: buys the cheapest thing it can and spends points top-down">Autoplay off</button>
@@ -925,6 +1005,17 @@ table.kvt td.n { text-align: left; }
       <button class="btn" id="saveBtn">Save code</button>
       <button class="btn" id="loadBtn">Load a code</button>
       <button class="btn" id="mFolder" hidden>Open saves folder</button>
+    </div>
+    <div class="foot-btns ph-only ph-menu" id="phMenu">
+      <button class="btn" type="button" data-phgo="rep">Reports</button>
+      <button class="btn" type="button" data-phclick="autoSetBtn">Autoplay setup</button>
+      <button class="btn" type="button" data-phclick="ttBtn">Tech Testing</button>
+      <button class="btn" type="button" data-phclick="mgBtn">Break room</button>
+      <button class="btn" type="button" data-phclick="musicBtn">Music</button>
+      <button class="btn" type="button" data-phclick="pctBtn">Show %</button>
+      <button class="btn" type="button" data-phclick="crewVisBtn">Hide crew</button>
+    </div>
+    <div class="foot-btns">
       <button class="btn" id="achBtn">Achievements</button>
       <button class="btn" id="storyBtn">Story</button>
       <button class="btn" id="mOffice">Office</button>
@@ -1014,6 +1105,7 @@ THE SOFTWARE.</pre></details>
   </section>
 
   <section class="readout" aria-label="Status">
+    <div class="ph-only"><span class="lbl">Contract</span><span class="val" id="rCon">1</span></div>
     <div><span class="lbl">Money</span><span class="val big" id="rDust">0</span></div>
     <div><span class="lbl">Dirt carried</span><span class="val" id="rCarry">0</span></div>
     <div><span class="lbl">Map</span><span class="val" id="rMap">1</span></div>
@@ -1035,6 +1127,7 @@ THE SOFTWARE.</pre></details>
 
   <div class="main">
     <div class="board-col">
+      <div class="ph-only ph-maphead"><span id="phSite"></span><div class="seg" id="phView" role="group" aria-label="View"><button type="button" data-v="2d">2D</button><button type="button" data-v="3d">3D</button></div></div>
       <div class="boardrow">
         <div class="depthcol" aria-label="Depth scale: full depth at the top, clean at the bottom">
           <span class="dlab top">Full</span>
@@ -1052,6 +1145,7 @@ THE SOFTWARE.</pre></details>
         </div>
       </div>
       <div class="foot-btns"><button class="btn" id="view3dBtn" aria-pressed="false">3D view</button><button class="btn" id="watchBtn" title="Just the board, full screen. The game keeps running. Esc to leave.">Full screen</button><span class="seg cam-seg" id="camSeg" hidden role="group" aria-label="Camera"><button data-cam="orbit" aria-pressed="true" title="Orbit view: drag to circle the board, scroll to zoom">Orbit</button><button data-cam="0" title="Tower view from the top-left base, looking across to the bottom-right. Drag to look around, scroll to raise or lower your seat">TL</button><button data-cam="1" title="Tower view from the top-right base">TR</button><button data-cam="2" title="Tower view from the bottom-left base">BL</button><button data-cam="3" title="Tower view from the bottom-right base">BR</button><button data-cam="tour" aria-pressed="false" title="Circle the board nonstop, one turn every 2 minutes. Click again to stop.">Tour</button></span><span class="note cam-info" id="camInfo" hidden></span><span class="note" id="view3dNote" hidden>Drag to look around · scroll to zoom (in a tower: raise or lower your seat) · double-click for the default orbit view</span><span class="note" id="view2dNote" title="The lots, houses and signs around the site only show in the 3D view.">The lots, houses and signs around the site only show in the 3D view.</span></div>
+      <div class="ph-only ph-mapinfo" id="phMapInfo"></div>
       <div class="watch-hud" id="watchHud" hidden><div class="wh-top"><b id="watchMap">Map 1</b><span class="wh-tabs" id="watchTabs" role="tablist" aria-label="Stats"></span></div><div class="wh-body" id="watchStats"></div><span id="watchContract"></span><span id="watchPerf"></span><span id="watchCam" hidden></span></div>
       <button class="btn watch-exit" id="watchExit" type="button" hidden>Exit full screen (Esc)</button>
       <div class="watch-shop" id="watchShop" hidden></div>
@@ -1062,6 +1156,7 @@ THE SOFTWARE.</pre></details>
     </div>
 
     <section class="panel">
+      <div class="ph-only ph-sub" id="phStatsSub" role="group" aria-label="Stats views"><button type="button" data-ph="stats">Stats</button><button type="button" data-ph="load">Loadout</button></div>
       <div class="report-card in-panel" id="repCard" hidden role="status" aria-live="polite">
         <div class="rep-h"><span id="repHead">Daily report</span><button class="btn" id="repClose" type="button">Dismiss</button></div>
         <p id="repText"></p>
@@ -1112,6 +1207,8 @@ THE SOFTWARE.</pre></details>
       </div>
     </section>
   </div>
+  <nav class="ph-nav ph-only" id="phNav" aria-label="Views"><button type="button" data-pv="map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z M9 4v14 M15 6v14"></path></svg><span>Map</span></button><button type="button" data-pv="up"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5 M5 12l7-7 7 7"></path></svg><span>Upgrades</span></button><button type="button" data-pv="crew"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M2 20c0-3 3-5 6-5s6 2 6 5 M14 15c3 0 8 1 8 5"></path></svg><span>Crew</span></button><button type="button" data-pv="stats"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10 M10 20V4 M16 20v-7 M22 20H2"></path></svg><span>Stats</span></button><button type="button" data-pv="res" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6 M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"></path></svg><span>Research</span></button></nav>
+  <div class="ph-sheet" id="phInfo" hidden><section class="card" role="dialog" aria-labelledby="phInfoName"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px"><h2 id="phInfoName"></h2><span class="lvl" id="phInfoLvl"></span></div><p id="phInfoDesc"></p><div class="row"><button type="button" class="btn buy" id="phInfoBuy"></button><button type="button" class="btn" data-close>Close</button></div></section></div>
 
 
 
@@ -3915,8 +4012,9 @@ function buildUpgrades() {
   for (const u of UPS) {
     if (u.sec) { const h = document.createElement("div"); h.className = "section-h"; h.textContent = u.sec; pane.appendChild(h); secHeads[UPS.indexOf(u)] = h; continue; }
     const row = document.createElement("div"); row.className = "up";
-    row.innerHTML = `<h3>${u.name}<span class="lvl"></span></h3><p></p><button class="btn buy" id="buy-${u.id}"></button>`;
-    const b = row.querySelector("button");
+    row.innerHTML = `<h3>${u.name}<span class="lvl"></span></h3><p></p><button type="button" class="btn ph-info" aria-label="About ${u.name}">i</button><button class="btn buy" id="buy-${u.id}"></button>`;
+    const b = row.querySelector(".buy");
+    row.querySelector(".ph-info").addEventListener("click", () => phInfoOpen(u.id));
     b.addEventListener("click", () => {
       const cost = u.cost();
       if ((u.max && u.max()) || u.can() !== true || !afford(cost)) return;
@@ -4174,12 +4272,17 @@ function buildCrew() {
   const groups = [];
   for (let b = 0; b < S.bases; b++) groups.push({ b, label: `${BASES[b].name} base · ${baseCount(b)}/${perBase()} slots${auxSlots() ? ` (${BAL.perBase} primary + ${auxSlots()} auxiliary)` : ""}` });
   if (S.shed || S.tools.some(t => t.base < 0)) groups.push({ b: -1, label: `Storage shed · ${baseCount(-1)} stored` });
+  { if (!(+pane.dataset.cb < S.bases)) pane.dataset.cb = "0";   // phone: one base at a time
+    const bar = document.createElement("div"); bar.className = "ph-bases"; bar.setAttribute("role", "group"); bar.setAttribute("aria-label", "Bases");
+    for (let b = 0; b < S.bases; b++) { const x = document.createElement("button"); x.type = "button"; x.innerHTML = `Base ${b + 1}<br><small>${baseCount(b)}/${perBase()}</small>`; x.setAttribute("aria-pressed", String(pane.dataset.cb === String(b)));
+      x.addEventListener("click", () => { pane.dataset.cb = String(b); bar.querySelectorAll("button").forEach((o, i) => o.setAttribute("aria-pressed", String(i === b))); }); bar.appendChild(x); }
+    pane.insertBefore(bar, note); }
   for (const g of groups) {
-  const gh = document.createElement("div"); gh.className = "section-h"; gh.textContent = g.label; pane.appendChild(gh);
+  const gh = document.createElement("div"); gh.className = "section-h"; gh.textContent = g.label; gh.dataset.crewbase = g.b; pane.appendChild(gh);
   const list = byLoadoutOrder(S.tools.filter(t => t.base === g.b));
-  if (!list.length) { const e = document.createElement("p"); e.className = "note"; e.textContent = g.b < 0 ? "Nothing stored." : "Empty slots. New tools launch here."; pane.appendChild(e); }
+  if (!list.length) { const e = document.createElement("p"); e.className = "note"; e.textContent = g.b < 0 ? "Nothing stored." : "Empty slots. New tools launch here."; e.dataset.crewbase = g.b; pane.appendChild(e); }
   for (const t of list) {
-    const card = document.createElement("details"); card.className = "tool" + (t.base < 0 ? " shelved" : "");
+    const card = document.createElement("details"); card.className = "tool" + (t.base < 0 ? " shelved" : ""); card.dataset.crewbase = g.b;
     if (openCards.has(t.uid)) card.open = true;
     card.addEventListener("toggle", () => { card.open ? openCards.add(t.uid) : openCards.delete(t.uid); });
     const isM = t.type === "multi";
@@ -5155,6 +5258,14 @@ function fitLayout() {   // one-screen layout: size the board to the space it ha
   const APP_MQ = window.matchMedia ? window.matchMedia("(min-width: 961px) and (min-height: 560px)") : null;
   const main = document.querySelector(".main"), row = document.querySelector(".boardrow"), fr = document.querySelector(".board-frame"), dc = document.querySelector(".depthcol");
   if (!main || !row || !fr) return;
+  if (document.body.classList.contains("phone")) {   // Nov 26: portrait phone: the board fills the map view
+    main.style.removeProperty("--bcol");
+    if (document.body.dataset.pv !== "map") return;
+    const aw = row.clientWidth, ah = row.clientHeight; if (aw < 50 || ah < 50) return;
+    const is3d = typeof V3 !== "undefined" && V3.on; let w, h;
+    if (is3d) { w = aw; h = ah; } else { const ratio = colsN() / (H + 2); w = Math.min(aw, ah * ratio); h = w / ratio; }
+    fr.style.width = Math.floor(w) + "px"; fr.style.height = Math.floor(h) + "px"; fitLayout.key = null; return;
+  }
   if (!APP_MQ || !APP_MQ.matches) { main.style.removeProperty("--bcol"); fr.style.width = ""; fr.style.height = ""; return; }
   const gap = 20, side = (dc ? dc.offsetWidth : 46) + 10 + (document.body.classList.contains("rd-left") ? 150 + gap : 0), panelMin = 360;
   const availH = Math.max(120, row.clientHeight - 22);            // leave room for the performance line under the board
@@ -7054,7 +7165,7 @@ function renderReadout() {
   const D = depth();
   document.getElementById("rDust").textContent = fmtMoney(S.money);
   document.getElementById("rCarry").textContent = fmt(S.tools.reduce((a, t) => a + t.carry, 0));
-  document.getElementById("rMap").textContent = S.map;
+  document.getElementById("rMap").textContent = S.map; { const rc = document.getElementById("rCon"); if (rc) rc.textContent = S.contract ? S.contract.n + 1 : 1; }
   if (S.trial) document.getElementById("subLine").textContent = `Tech Testing · ${TT_BY[S.trial.id].name} on ${siteName(ttPlanet())} · crew ×${statMult().toFixed(2)} · no site conditions while testing · your contract ${S.contract.n + 1} is paused`;
   else if (S.contract.n > 0) document.getElementById("subLine").textContent = `Contract ${S.contract.n + 1} · ${capFirst(siteName(S.contract.n))} · dirt ×${fmtX(S.contract.dustMult)} · crew ×${statMult().toFixed(2)} · ${perBase()} slots per base${siteQuirk() ? ` · ${siteQuirk().name}: ${siteQuirk().desc}` : ""}`;
   else { const el = document.getElementById("subLine"), t = "Contract 1 · The Moon · Map n is n² layers deep, plus 2% more per map (map 50 is twice as deep). The board starts at 10×10 and can grow."; if (el.textContent !== t) el.textContent = t; }   // Nov 17: contract 1 after a promotion (or a new game) resets the line too
@@ -7936,6 +8047,79 @@ function wire() {
     if (b.dataset.pane === "paneStats") { updateStats(); try { tutShow(31); } catch (e) {} }
     if (b.dataset.pane === "paneLoad") buildLoadout();
   }));
+  wirePhone(setMenu);
+}
+// ---------- Nov 26: portrait phone layout ----------
+let phoneView = "map";
+function setPhoneView(v) {
+  phoneView = v; document.body.dataset.pv = v;
+  const tab = { up: "tab-up", crew: "tab-crew", stats: "tab-stats", load: "tab-load", res: "tab-res", rep: "tab-rep" }[v];
+  if (tab) document.getElementById(tab).click();
+  const navV = v === "load" ? "stats" : v;
+  document.querySelectorAll("#phNav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.pv === navV)));
+  document.querySelectorAll("#phStatsSub button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ph === (v === "load" ? "load" : "stats"))));
+  if (v === "load") document.body.dataset.pv = "stats";
+  if (v === "map") { fitLayout.key = null; requestAnimationFrame(() => { fitLayout(); try { if (V3.on && V3.renderer) window.dispatchEvent(new Event("resize")); } catch (e) {} }); }
+}
+function wirePhone(setMenu) {
+  const mq = window.matchMedia ? window.matchMedia("(max-width: 700px) and (orientation: portrait)") : null;
+  const apply = () => {
+    const on = !!(mq && mq.matches), was = document.body.classList.contains("phone");
+    document.body.classList.toggle("phone", on);
+    if (on && !was) setPhoneView(phoneView);
+    if (!on && was) { delete document.body.dataset.pv; }
+    fitLayout.key = null; fitLayout();
+  };
+  if (mq) { mq.addEventListener ? mq.addEventListener("change", apply) : mq.addListener(apply); }
+  document.querySelectorAll("#phNav button").forEach(b => b.addEventListener("click", () => setPhoneView(b.dataset.pv)));
+  document.querySelectorAll("#phStatsSub button").forEach(b => b.addEventListener("click", () => setPhoneView(b.dataset.ph)));
+  // speed dropdown drives the original speed buttons
+  const sel = document.getElementById("phSpeed"), seg = document.getElementById("speedSeg");
+  [1, 2, 5, 10, 25, 100, "auto"].forEach(x => { const o = document.createElement("option"); o.value = String(x); o.textContent = x === "auto" ? "Auto" : x + "×"; sel.appendChild(o); });
+  sel.addEventListener("change", () => {
+    const btn = sel.value === "auto" ? document.getElementById("autoSpdBtn") : [...seg.querySelectorAll("button")].find(o => o.textContent === sel.value + "×");
+    if (btn) btn.click(); phUpdate();
+  });
+  // 2D / 3D
+  document.querySelectorAll("#phView button").forEach(b => b.addEventListener("click", () => {
+    const want = b.dataset.v === "3d"; if (want !== !!V3.on) document.getElementById("view3dBtn").click();
+    fitLayout.key = null; requestAnimationFrame(fitLayout); phUpdate();
+  }));
+  // menu: Reports and the header buttons the phone hides
+  document.querySelectorAll("#phMenu [data-phgo]").forEach(b => b.addEventListener("click", () => { setMenu(false); setPhoneView(b.dataset.phgo); }));
+  document.querySelectorAll("#phMenu [data-phclick]").forEach(b => b.addEventListener("click", () => { setMenu(false); const t = document.getElementById(b.dataset.phclick); if (t) t.click(); }));
+  // upgrade info sheet
+  const sh = document.getElementById("phInfo");
+  sh.addEventListener("click", e => { if (e.target === sh || e.target.closest("[data-close]")) sh.hidden = true; });
+  document.getElementById("phInfoBuy").addEventListener("click", () => { const e = upEls[sh.dataset.u]; if (e) { e.b.click(); phInfoFill(); } });
+  apply();
+  setInterval(phUpdate, 400);
+}
+function phInfoOpen(id) { const sh = document.getElementById("phInfo"); sh.dataset.u = id; phInfoFill(); sh.hidden = false; }
+function phInfoFill() {
+  const sh = document.getElementById("phInfo"), u = UPS.find(x => x.id === sh.dataset.u), e = upEls[sh.dataset.u]; if (!u || !e) return;
+  document.getElementById("phInfoName").textContent = u.name;
+  document.getElementById("phInfoLvl").textContent = e.lvl.textContent;
+  document.getElementById("phInfoDesc").innerHTML = e.p.innerHTML;
+  const buy = document.getElementById("phInfoBuy"); buy.innerHTML = e.b.innerHTML; buy.disabled = e.b.disabled; buy.hidden = e.row.hidden;
+}
+function phUpdate() {
+  if (!document.body.classList.contains("phone") || !S) return;
+  document.getElementById("pauseBtn").dataset.p = paused ? "1" : "0";
+  const sel = document.getElementById("phSpeed");
+  if (document.activeElement !== sel) {
+    sel.value = autoSpeed ? "auto" : String(speed);
+    sel.options[sel.options.length - 1].textContent = autoSpeed ? `Auto · ${Math.round(speed)}×` : "Auto";
+  }
+  document.querySelectorAll("#phView button").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.v === "3d") === !!V3.on)));
+  try { document.getElementById("phSite").textContent = `${capFirst(siteName(S.contract.n))} · ${W}×${H}`; } catch (e) {}
+  const chip = document.getElementById("cChip"), ct = document.getElementById("cChipText"), mg = document.getElementById("mgBtn"), bank = document.getElementById("mgBank");
+  const bits = []; if (chip && !chip.hidden && ct.textContent) bits.push(ct.textContent);
+  if (mg && !mg.hidden && bank && bank.textContent) bits.push("Break room " + bank.textContent);
+  document.getElementById("phMapInfo").textContent = bits.join(" · ");
+  const res = document.querySelector('#phNav [data-pv="res"]'); res.hidden = document.getElementById("tab-res").hidden;
+  document.querySelectorAll("#phMenu [data-phclick]").forEach(b => { const t = document.getElementById(b.dataset.phclick); b.hidden = !t || t.hidden; if (t && b.dataset.phclick !== "autoSetBtn" && b.dataset.phclick !== "mgBtn" && b.dataset.phclick !== "ttBtn") b.textContent = t.textContent; });
+  if (!document.getElementById("phInfo").hidden) phInfoFill();
 }
 
 let last = performance.now(), uiTimer = 0, saveTimer = 0, uiTick = 0;
