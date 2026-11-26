@@ -49,14 +49,16 @@ body {
 header.top {
   display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px;
 }
-.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; flex: 1 1 100%; min-width: 0; }   /* Nov 26: always the full first row (it used to be pushed there by the long sub line) */
 .brand h1 {
   font-family: var(--f-display); font-weight: 700; font-size: 1.6rem; letter-spacing: 0.04em;
   margin: 0; text-transform: uppercase; text-wrap: balance;
 }
-.brand .sub { color: var(--muted); font-size: 0.9rem; flex: 1 0 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }   /* Nov 18: always its own line, never wrapping (hover for all of it) */
+.brand .sub { color: var(--muted); font-size: 0.9rem; flex: 1 0 100%; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; contain: inline-size; }   /* Nov 26: contain keeps the long line from widening the page on phones */   /* Nov 18: always its own line, never wrapping (hover for all of it) */
 .brand .contract-chip { max-width: calc(100% - 300px); min-width: 0; }
 .brand .contract-chip > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand .contract-chip { flex: 1 1 24ch; } .brand .contract-chip > span { flex: 1 1 auto; contain: inline-size; }   /* Nov 26: the chip shrinks with the page instead of widening it */
+@media (max-width: 640px) { .brand .contract-chip { max-width: 100%; flex-basis: 100%; } }
 /* how close this map is to autoplay's contract trigger (dig phase 10% slower than the last map's) */
 .contract-chip { position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 6px; font-family: var(--f-mono); font-size: 0.75rem;
   padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--fg); background: var(--panel); white-space: nowrap; }
@@ -412,7 +414,7 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .tutcard .tut-steve b { color: var(--accent); margin-right: 4px; }
 .tutcard .tut-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
 .drawoff { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40; padding: 6px 12px; border: 1px solid var(--gold); border-radius: 6px; background: var(--panel); color: var(--gold); font-size: 0.85rem; pointer-events: none; }
-.tgtwrap { overflow-x: auto; margin: 6px 0; } .tgttable { border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
+.tgtwrap { overflow-x: auto; margin: 6px 0; max-width: 100%; min-width: 0; flex: 1 1 100%; contain: inline-size; }   /* Nov 26: scrolls sideways on phones instead of widening the page */ .tgttable { border-collapse: separate; border-spacing: 0; font-size: 0.82rem; }
 .tgttable th, .tgttable td { padding: 4px 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
 .tgttable thead th { border: 0; color: var(--muted); font-weight: 500; font-size: 0.74rem; white-space: normal; vertical-align: bottom; }
 .tgttable tbody th { text-align: left; font-weight: 600; } .tgttable input { width: 3.6em; } .tgttable tbody th input { width: 3.8em; }
@@ -644,6 +646,7 @@ select {
 .tape-wrap iframe { width: min(1020px, 100%); height: calc(100vh / var(--z, 1) - 24px); border: 0; border-radius: 12px; background: #121014; }
 .linkbtn { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; cursor: pointer; font: inherit; }
 .tape-x { position: absolute; top: 14px; right: 18px; z-index: 1; }
+@media (max-width: 640px) { .tape-wrap { padding-top: 60px; } .tape-wrap iframe { height: calc(100vh / var(--z, 1) - 72px); } .tape-x { top: 12px; } }   /* Nov 26: phones: Close sits above the tape, not over its corner */
 .alpha { display: grid; gap: 10px; }
 .alpha-tag { justify-self: start; font-family: var(--f-mono); font-size: 0.75rem; letter-spacing: 0.12em; color: #111; background: var(--gold); padding: 3px 9px; border-radius: 4px; }
 .alpha h2 { margin: 0; font-family: var(--f-display); font-size: 1.3rem; letter-spacing: 0.04em; }
