@@ -1763,7 +1763,7 @@ function signContract() {
   const keep = {
     contract: { n: c.n + 1, dustMult: c.dustMult * gain, resAt: resSum(), pulledAt: (S.research && S.research.pulled) || 0, playAt: S.playTime || 0,
       history: [...(c.history || []), { map: S.map, gain: +gain.toFixed(3), at: Math.round(S.gameTime), sum }] },
-    playTime: S.playTime, playSince: S.playSince, log: S.log, view: S.view, labReserve: S.labReserve, target: S.target, auto: S.auto, research: S.research, fieldLog: S.fieldLog, personalLog: S.personalLog, dpsN: S.dpsN, gameTime: S.gameTime, ramble: S.ramble, seen: S.seen, chatter: S.chatter, snubCount: S.snubCount, chatRecent: S.chatRecent, ach: S.ach, spillLog: S.spillLog, projAcc: S.projAcc, projShape: S.projShape, signSeed: S.signSeed, firsts: S.firsts, gagCaught: S.gagCaught, runId: S.runId, offBank: S.offBank, sup: S.sup, branchOf: S.branchOf, prog: S.prog, logMoved: S.logMoved, bricks: S.bricks, bricksSpent: S.bricksSpent, brickHouses: S.brickHouses, mg: S.mg, tt: S.tt, storyMax: S.storyMax, storyDone: S.storyDone, office: S.office,
+    playTime: S.playTime, playSince: S.playSince, log: S.log, view: S.view, labReserve: S.labReserve, target: S.target, auto: S.auto, research: S.research, fieldLog: S.fieldLog, personalLog: S.personalLog, dpsN: S.dpsN, gameTime: S.gameTime, ramble: S.ramble, seen: S.seen, chatter: S.chatter, snubCount: S.snubCount, chatRecent: S.chatRecent, ach: S.ach, spillLog: S.spillLog, projAcc: S.projAcc, projShape: S.projShape, projV: S.projV, signSeed: S.signSeed, firsts: S.firsts, gagCaught: S.gagCaught, runId: S.runId, offBank: S.offBank, sup: S.sup, branchOf: S.branchOf, prog: S.prog, logMoved: S.logMoved, bricks: S.bricks, bricksSpent: S.bricksSpent, brickHouses: S.brickHouses, mg: S.mg, tt: S.tt, storyMax: S.storyMax, storyDone: S.storyDone, office: S.office,
   };
   S = Object.assign(newState(), keep); S.mapStart = S.gameTime; projMarks = [];   // a signed contract leaves its map unfinished: no samples from it
   freshRun(); officeRunStart();
@@ -4908,7 +4908,7 @@ function statTables(hud) {   // hud: the full-screen view, which shows the contr
   const dug = Math.max(0, total - left), spillN = S.spill.filter(v => v > 0).length, spillSum = S.spill.reduce((a, v) => a + v, 0);
   const curC = (S.contract ? S.contract.n : 0) + 1;
   let best = { map: S.map, c: curC }; for (const k in S.prog || {}) if (S.prog[k].far > best.map) best = { map: S.prog[k].far, c: +k };   // furthest across every contract
-  const etaMap = S.phase === "recall" || !(rateEma > 0) ? null : left / rateEma;
+  const etaMap = S.phase === "recall" ? null : mapEta();
   const mapCard = card("Current map breakdown",
     row("Map", `${S.map}`, best.map > S.map ? `furthest ever: map ${best.map} (contract ${best.c})` : best.c === curC && S.map > 1 ? "furthest ever" : "") +
     row("This map", fmtTime(S.gameTime - S.mapStart), "game time") +
@@ -4932,7 +4932,7 @@ function statTables(hud) {   // hud: the full-screen view, which shows the contr
     <tbody>${crewRows}<tr class="tot"><th scope="row">All diggers</th><td class="n">${S.tools.filter(t => !isG(t)).length}</td><td class="n">${digAll}</td><td class="n">${fmt(totalRate)}</td><td class="n"></td></tr></tbody></table>`;
   // game
   const hist = (S.contract && S.contract.history) || [], cStart = hist.length ? hist[hist.length - 1].at : 0;
-  const eta = S.phase === "recall" || !(rateEma > 0) ? null : left / rateEma, cPlay = S.contract.playAt;
+  const eta = S.phase === "recall" ? null : mapEta(), cPlay = S.contract.playAt;
   const tRow = (k, game, real, note) => `<tr><th scope="row">${k}</th><td class="n">${game}</td><td class="n">${real}</td><td class="sub">${note || ""}</td></tr>`;
   const timeTable = `<table class="st kvt ttime"><thead><tr><th></th><th class="n">Game</th><th class="n">Real</th><th></th></tr></thead><tbody>
     ${(() => { const G = gameTotals(); return G.runs ? tRow("Whole game", fmtTime(G.game), fmtTime(G.play), `${G.runs + 1} runs, ${G.runs} promotion${G.runs > 1 ? "s" : ""}`) : ""; })()}
@@ -6965,15 +6965,22 @@ function render() {
 // ends, the real time left over the projection is one sample for that checkpoint (1.00 = spot on, 1.20 = took 20% longer than
 // projected). The last projKeep samples per checkpoint are kept with the save.
 let projMarks = [];
+// Nov 26: projected time left (game seconds) from the map's average dig rate so far: much steadier than the recent rate,
+// which drops every time the crew walks home to sell. Starts a little high (the walk out counts as time) and settles.
+function mapEta() {
+  const el = S.gameTime - S.mapStart, rem = remaining(), dug = depth() * cellCount() - rem;
+  return el > 3 && dug > 0 ? rem / (dug / el) : null;
+}
 function projFrac() { const tot = depth() * cellCount(); return tot > 0 ? 1 - remaining() / tot : 0; }
 function projMark() {
   if (!(rateEma > 0) || paceSecs < 60) return;   // same rule as the pace check: a minute of rate readings first
   const cps = BAL.projCheckpoints, fr = projFrac();
   let k = projMarks.length; if (k >= cps.length || fr < cps[k]) return;
   while (k + 1 < cps.length && fr >= cps[k + 1]) { projMarks.push(null); k++; }   // passed several at once (e.g. still warming up): keep only the latest
-  projMarks.push({ el: S.gameTime - S.mapStart, left: remaining() / rateEma });
+  projMarks.push({ el: S.gameTime - S.mapStart, left: mapEta() || 0 });
 }
 function projScore(time) {
+  if (S.projV !== 2) { S.projAcc = {}; S.projShape = {}; S.projV = 2; }   // Nov 26: projections now use the map's average rate: start the scores fresh
   const acc = S.projAcc || (S.projAcc = {});
   const shp = S.projShape || (S.projShape = {});
   projMarks.forEach((m, k) => { if (!m || !(m.left > 1)) return; const cp = BAL.projCheckpoints[k];
@@ -7198,10 +7205,8 @@ function renderReadout() {
   document.getElementById("rProg").textContent = (100 * (1 - remaining() / (D * cellCount()))).toFixed(1) + "%";
   document.getElementById("rRate").textContent = fmt(totalRate);
   const two = (id, game, real) => { const el = document.getElementById(id);
-    if (id === "rEta" && document.body.classList.contains("phone")) {   // Nov 26: phone Finish is the real wait, as m:ss, refreshed once a second so it doesn't flicker
-      const now = performance.now(); if (el.dataset.t && now - +el.dataset.t < 1000 && el.dataset.h) return; el.dataset.t = now;
-      const el2 = S.gameTime - S.mapStart, rem = remaining(), dug = D * cellCount() - rem;   // the map's average rate so far: steadier than the recent rate
-      const g2 = el2 > 3 && dug > 0 ? rem / (dug / el2) : null; real = g2 == null ? null : realOf(g2);
+    if (id === "rEta") { const now = performance.now(); if (el.dataset.t && now - +el.dataset.t < 1000 && el.dataset.h) return; el.dataset.t = now; }   // Nov 26: Finish refreshes once a second
+    if (id === "rEta" && document.body.classList.contains("phone")) {   // phone Finish is the real wait, as m:ss
       const hh = real == null ? "—" : fmtClock(Math.ceil(real)); if (el.dataset.h !== hh) { el.textContent = hh; el.dataset.h = hh; } return;
     }
     const h = game == null ? "—" : `${document.body.classList.contains("phone") ? fmtClock(game) : fmtTime(game)}<small>${real == null ? "" : fmtTime(real) + " real"}</small>`; if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } };
@@ -7211,7 +7216,7 @@ function renderReadout() {
   two("rCellT", avg, avg == null ? null : realOf(avg));
   const left = remaining();
   if (S.phase === "recall") { const el = document.getElementById("rEta"); el.textContent = "Recall"; el.dataset.h = ""; }
-  else two("rEta", rateEma > 0 ? left / rateEma : null, rateEma > 0 ? realOf(left / rateEma) : null);
+  else { const g = mapEta(); two("rEta", g, g == null ? null : realOf(g)); }
   { const cs = contractStatus(), chip = document.getElementById("cChip"), wc = document.getElementById("watchContract");
     chip.hidden = !cs; wc.hidden = !cs;
     chip.title = "Autoplay's contract trigger: the opening map's main dig (the time until the last 25% of cells, when mop-up starts) sets a baseline. On each later map, if the main dig runs past that baseline plus an allowance (+10% on the first map after, then 5 points tighter every map: +5%, 0%, −5%, −10%...) before mop-up starts, autoplay signs the next contract right then. Mop-up is left out because it swings a lot from map to map; the main dig is steady and grows with depth.";
