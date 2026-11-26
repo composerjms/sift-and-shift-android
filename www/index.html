@@ -2,7 +2,7 @@
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sift &amp; Shift v9</title>
+<title>Sift &amp; Shift v10</title>
 <script>/* three.js r128, MIT license, bundled so the desktop app works offline */
 /**
  * @license
@@ -1004,7 +1004,7 @@ table.kvt td.n { text-align: left; }
 
 <div class="title-screen" id="titleScreen" role="dialog" aria-modal="true" aria-labelledby="tHead">
   <div class="title-card">
-    <h1 id="tHead">Sift &amp; Shift <span style="color:var(--gold)">v9</span></h1>
+    <h1 id="tHead">Sift &amp; Shift <span style="color:var(--gold)">v10</span></h1>
     <p class="note" id="tSub">Flatten the solar system, one layer at a time.</p>
     <div id="tBody"></div>
   </div>
@@ -1012,7 +1012,7 @@ table.kvt td.n { text-align: left; }
 <div class="wrap">
   <header class="top">
     <div class="brand">
-      <h1>Sift &amp; Shift <span style="color:var(--gold)">v9</span></h1>
+      <h1>Sift &amp; Shift <span style="color:var(--gold)">v10</span></h1>
       <span class="contract-chip" id="cChip" hidden><i id="cChipBar"></i><span id="cChipText"></span></span>
       <span class="sub" id="subLine">Contract 1 · The Moon · Map <i>n</i> is <i>n</i>² layers deep, plus 2% more per map (map 50 is twice as deep). The board starts at 10×10 and can grow.</span>
     </div>
@@ -1381,7 +1381,8 @@ const BAL = {
   rakeUnlock: 4,            // sweepers you must own before rakes can be hired
   attLevel: 10,             // a tool can buy its attachment at this level (or after any prestige)
   mopStar: 3,               // Mop-up unlocks when any tool reaches this star; tier-2 fusion needs Mop-up
-  mgBankPerPromo: 1, mgBankPerPromoMax: 20, pdaysPerBreak: 3,   // v9: the Break room holds one more banked break per promotion; autoplay plays up to 3 personal days ahead of each break it takes
+  mgBankPerPromo: 0.5, mgBankPerPromoMax: 40,   // V10: +1 banked break every second promotion
+  pdaysPerBreak: 3,   // v9: the Break room holds one more banked break per promotion; autoplay plays up to 3 personal days ahead of each break it takes
   ttFirstAt: 12, ttSkipAfterTimeout: 3,   // v9 Tech Testing: tier 1 opens after contract 12; autoplay waits 3 contracts after a trial breaks for lunch
   crossFrom: 15, xchgFrom: 18, combineFrom: 28, combineSpeed: 2.77,   // v7: a multi-tool and an interchange fuse into a combine harvester from contract 28   // v7: Crossroads can be hired from contract 15; two fuse into an Interchange from contract 18
   hirePrice: { single: 1, rake: 1.5, cross: 1.5 },   // v7: each type's price × the shared crew-size growth (slots in use)
@@ -1612,8 +1613,8 @@ const AUTO_OPTS = {
   research:  { label: "Research focus", info: "What the research towers work on. Lowest first gives the towers the lowest-level tracks, and keeps the tower pulling the most dirt on whichever of those is closest to its next level, swapping as cells run dry (XP stays with the track).", opts: [["lowest", "Lowest level first: keeps every track climbing"], ["manual", "Leave alone: you pick on the Research tab"]] },
   rakes:     { label: "Rake focus", info: "How rakes choose their next strip. Best patch was about 7% faster by map 10 and 19% by map 100 in testing.", opts: [["best", "Best patch: most dirt per second, walk included"], ["nearest", "Nearest: the closest open strip"]] },
   summary:   { label: "Contract summary", info: "The card that shows how each contract went. While it's up, the game waits.", opts: [["stop", "Stop and show it: the game waits until you continue"], ["skip", "Skip it and keep going (it's still in Stats → Contract history)"], ...[5, 10, 20, 25, 50].map(n => ["every" + n, `Skip it, but stop every ${n} contracts (after contract ${n}, ${n * 2}, ...)`])] },
-  mg:        { label: "Meaner Gleaner breaks", info: "What happens to time off (one run per 30 minutes of game time, up to 6) once the Meaner Gleaner unlocks.", opts: [["manual", "Leave them for me to play in the Break room"], ["auto", "Take them unseen: autoplay plays each run in the background as it's earned"], ["seen", "Take them on screen: autoplay opens the Break room and plays each run where you can watch (the main game waits)"], ["batch", "Take them on screen in batches: autoplay waits until the bank is full, then plays them back to back where you can watch"]] },
-  pdays:     { label: "Personal days", info: "Personal days come one per contract once the Meaner Gleaner unlocks: double spill, no cap, but they start over at each promotion. With breaks: whenever autoplay takes time off (unseen or on screen), it plays up to this many personal days first, then jumps over to the banked vacation runs; any left over wait for the next break (and are lost at promotion). Unseen breaks pause the main game while each run plays out, so a big number there means a longer pause. Has no effect if Meaner Gleaner breaks are left to you.", opts: [["b1", "With breaks: up to 1 personal day first, then vacation"], ["b2", "With breaks: up to 2 personal days first, then vacation"], ["breaks", "With breaks: up to 3 personal days first, then vacation"], ["b5", "With breaks: up to 5 personal days first, then vacation"], ["b10", "With breaks: up to 10 personal days first, then vacation"], ["b20", "With breaks: up to 20 personal days first, then vacation"], ["ball", "With breaks: all personal days first, then vacation"], ["never", "Never: leave them for me to play"]] },
+  mg:        { label: "Meaner Gleaner breaks", info: "What happens to time off (one run per hour of game time, up to 6 plus one every second promotion) once the Meaner Gleaner unlocks.", opts: [["manual", "Leave them for me to play in the Break room"], ["auto", "Take them unseen: autoplay plays each run in the background as it's earned"], ["seen", "Take them on screen: autoplay opens the Break room and plays each run where you can watch (the main game waits)"], ["batch", "Take them on screen in batches: autoplay waits until the bank is full, then plays them back to back where you can watch"]] },
+  pdays:     { label: "Personal days", info: "Personal days come one per contract once the Meaner Gleaner unlocks: triple spill and charge, no cap, but they start over at each promotion. With breaks: whenever autoplay takes time off (unseen or on screen), it plays up to this many personal days first, then jumps over to the banked vacation runs; any left over wait for the next break (and are lost at promotion). Unseen breaks pause the main game while each run plays out, so a big number there means a longer pause. Has no effect if Meaner Gleaner breaks are left to you.", opts: [["b1", "With breaks: up to 1 personal day first, then vacation"], ["b2", "With breaks: up to 2 personal days first, then vacation"], ["breaks", "With breaks: up to 3 personal days first, then vacation"], ["b5", "With breaks: up to 5 personal days first, then vacation"], ["b10", "With breaks: up to 10 personal days first, then vacation"], ["b20", "With breaks: up to 20 personal days first, then vacation"], ["ball", "With breaks: all personal days first, then vacation"], ["never", "Never: leave them for me to play"]] },
   contracts: { label: "New contracts", info: "When it signs a new contract (a fresh start with permanent bonuses). It signs immediately, mid-map: it does not wait for the current map to finish.", opts: [["auto", "When the main dig slows: opening map +10%, then tighter each map (5, 8, 11 points…)"], ["asap", "Immediately, as soon as one is available"], ["never", "Never: you sign them"]] },
   promote:   { label: "Promotions (testing)", info: "Whether autoplay takes a promotion for you once this run's contract cap is reached (25 the first time, then 5 more each promotion). The run waits in the Office until you start the next one. Off by default. Overtime: maps dug past the cap add promotion points (+7% at 10 maps, +11% at 20, up to +25% at about 112), so the later choices keep digging first.", opts: [["manual", "Never: I'll promote myself in the Office"], ["asap", "As soon as one is available"], ["ot20", "After 20 maps of overtime (about +11%)"], ["ot50", "After 50 maps of overtime (about +18%)"], ["otmax", "At full overtime (+25%)"]] },
 };
@@ -8263,12 +8264,12 @@ function perfTick(now) {
 }
 // ====================== MEANER GLEANER ======================
 // The lab's own Gleaner, defending against dirt that fights back. Unlocks when any tower's Dirt Conversion reaches Lv 5 (BAL.mgUnlockConv).
-// Every 30 minutes of main-game time earns a run (up to 6; more is forfeited). Playing one pauses the main game.
+// V10: every hour of main-game time earns a run (double pay) (up to 6; more is forfeited). Playing one pauses the main game.
 // Waves survived charge one battery that boosts annex power (drains on main-game time); lifetime dirt cleared there gives a
 // permanent multiplier on Conversion XP (×1.25 at 100, ×1.5 at 1,000, ...). Autoplay can take breaks for you, played unseen.
 const R_ = (id) => R(id);   // the game's research boost, for the Meaner Gleaner (which uses R for its run)
 const MG = (() => {
-const MG_HTML = "<div class=\"mg-wrap\">\n  <div class=\"mg-top\"><h2>Meaner <span>Gleaner</span></h2>\n    <p>Time off. The main game is paused until you head back. Waves survived charge the annex battery; every power of ten of dirt cleared adds permanent Conversion XP.</p>\n    <div class=\"seg\" id=\"mg-speed\" role=\"group\" aria-label=\"Break room speed\"><button type=\"button\" data-s=\"1\">1\u00d7</button><button type=\"button\" data-s=\"5\">5\u00d7</button><button type=\"button\" data-s=\"25\">25\u00d7</button><button type=\"button\" data-s=\"100\">100\u00d7</button><button type=\"button\" data-s=\"0\">Pause</button></div>\n    <label class=\"mg-autolbl\" title=\"Autoplay buys upgrades and fills the loadout\"><input type=\"checkbox\" id=\"mg-auto\"> Autoplay</label>\n    <button type=\"button\" class=\"mg-back\" id=\"mg-back\">Back to work</button></div>\n  <div class=\"mg-main\">\n    <div class=\"mg-arena\"><canvas id=\"mg-cv\" aria-label=\"Arena: the Meaner Gleaner in the middle, dirt closing in from every side\"></canvas>\n      <div class=\"mg-over\" id=\"mg-over\" hidden><div id=\"mg-overBox\"></div></div></div>\n    <div class=\"mg-col a\">\n      <section><h3>Time off <small id=\"mg-bankTxt\"></small></h3>\n        <div class=\"pips\" id=\"mg-pips\"></div>\n        <dl><dt>Next run in (game time)</dt><dd id=\"mg-earnTxt\">\u2013</dd><dt>Time off lost</dt><dd id=\"mg-ovTxt\">\u2013</dd></dl>\n        <p class=\"note\">One run per 30 minutes of main-game time, up to 6. Plane Estates policy: use it or lose it. Personal days (gold) come one per contract signed: double spill, never forfeited, and autoplay leaves them for you.</p></section>\n      <section><h3>This run <small id=\"mg-runState\"></small></h3>\n        <div class=\"mg-bar\"><i id=\"mg-hullBar\"></i></div>\n        <dl><dt>Hull</dt><dd id=\"mg-hullTxt\">\u2013</dd><dt>Wave</dt><dd id=\"mg-waveTxt\">\u2013</dd><dt>Dirt on the field</dt><dd id=\"mg-enTxt\">\u2013</dd><dt>Clod health</dt><dd id=\"mg-hpTxt\">\u2013</dd><dt>Next boss</dt><dd id=\"mg-bossTxt\">\u2013</dd><dt>Best wave ever</dt><dd id=\"mg-bestTxt\">\u2013</dd><dt>Runs</dt><dd id=\"mg-runsTxt\">\u2013</dd></dl></section>\n      <section><h3>Annex battery <small id=\"mg-halfTxt\"></small></h3>\n        <div class=\"mg-batt\"><span class=\"big\" id=\"mg-boostTxt\">+0%</span><p>annex power now. Waves survived charge it; it drains while you dig.</p></div>\n        <div class=\"mg-bar batt\"><i id=\"mg-battBar\"></i></div>\n        <canvas class=\"spark\" id=\"mg-sparkC\" aria-label=\"Battery charge over the last six hours of main-game time\"></canvas>\n        <dl><dt>Charge</dt><dd id=\"mg-chargeTxt\">\u2013</dd><dt>Conversion XP, for good</dt><dd id=\"mg-permTxt\">\u2013</dd><dt>Dirt cleared</dt><dd id=\"mg-clearTxt\">\u2013</dd></dl></section>\n    </div>\n    <div class=\"mg-col b\">\n      <section><h3>Loadout <small id=\"mg-mountTxt\"></small></h3><div class=\"mounts\" id=\"mg-mounts\"></div><p class=\"note\" id=\"mg-lockTxt\"></p></section>\n      <section><h3>Attachments <small><span class=\"spill\" id=\"mg-spillTxt\">0</span> spill · <span id=\"mg-spillMult\" title=\"Spill from each kill is multiplied by the square root of your dirt's lasting value: contract bonus × Market Contacts × Dirt Moved achievements\"></span></small></h3><div class=\"ups\" id=\"mg-ups\"></div></section>\n    </div>\n  </div>\n  <section class=\"mg-gear\"><h3>Gleaner upgrades <small id=\"mg-saving\">hull, defense, cones, moons</small></h3><div class=\"gups\" id=\"mg-gups\"></div></section>\n</div>";
+const MG_HTML = "<div class=\"mg-wrap\">\n  <div class=\"mg-top\"><h2>Meaner <span>Gleaner</span></h2>\n    <p>Time off. The main game is paused until you head back. Waves survived charge the annex battery; every power of ten of dirt cleared adds permanent Conversion XP.</p>\n    <div class=\"seg\" id=\"mg-speed\" role=\"group\" aria-label=\"Break room speed\"><button type=\"button\" data-s=\"1\">1\u00d7</button><button type=\"button\" data-s=\"5\">5\u00d7</button><button type=\"button\" data-s=\"25\">25\u00d7</button><button type=\"button\" data-s=\"100\">100\u00d7</button><button type=\"button\" data-s=\"0\">Pause</button></div>\n    <label class=\"mg-autolbl\" title=\"Autoplay buys upgrades and fills the loadout\"><input type=\"checkbox\" id=\"mg-auto\"> Autoplay</label>\n    <button type=\"button\" class=\"mg-back\" id=\"mg-back\">Back to work</button></div>\n  <div class=\"mg-main\">\n    <div class=\"mg-arena\"><canvas id=\"mg-cv\" aria-label=\"Arena: the Meaner Gleaner in the middle, dirt closing in from every side\"></canvas>\n      <div class=\"mg-over\" id=\"mg-over\" hidden><div id=\"mg-overBox\"></div></div></div>\n    <div class=\"mg-col a\">\n      <section><h3>Time off <small id=\"mg-bankTxt\"></small></h3>\n        <div class=\"pips\" id=\"mg-pips\"></div>\n        <dl><dt>Next run in (game time)</dt><dd id=\"mg-earnTxt\">\u2013</dd><dt>Time off lost</dt><dd id=\"mg-ovTxt\">\u2013</dd></dl>\n        <p class=\"note\">One run per hour of main-game time, up to 6 (+1 every second promotion), each paying double spill and battery charge. Plane Estates policy: use it or lose it. Personal days (gold) come one per contract signed: triple spill and charge, never forfeited.</p></section>\n      <section><h3>This run <small id=\"mg-runState\"></small></h3>\n        <div class=\"mg-bar\"><i id=\"mg-hullBar\"></i></div>\n        <dl><dt>Hull</dt><dd id=\"mg-hullTxt\">\u2013</dd><dt>Wave</dt><dd id=\"mg-waveTxt\">\u2013</dd><dt>Dirt on the field</dt><dd id=\"mg-enTxt\">\u2013</dd><dt>Clod health</dt><dd id=\"mg-hpTxt\">\u2013</dd><dt>Next boss</dt><dd id=\"mg-bossTxt\">\u2013</dd><dt>Best wave ever</dt><dd id=\"mg-bestTxt\">\u2013</dd><dt>Runs</dt><dd id=\"mg-runsTxt\">\u2013</dd></dl></section>\n      <section><h3>Annex battery <small id=\"mg-halfTxt\"></small></h3>\n        <div class=\"mg-batt\"><span class=\"big\" id=\"mg-boostTxt\">+0%</span><p>annex power now. Waves survived charge it; it drains while you dig.</p></div>\n        <div class=\"mg-bar batt\"><i id=\"mg-battBar\"></i></div>\n        <canvas class=\"spark\" id=\"mg-sparkC\" aria-label=\"Battery charge over the last six hours of main-game time\"></canvas>\n        <dl><dt>Charge</dt><dd id=\"mg-chargeTxt\">\u2013</dd><dt>Conversion XP, for good</dt><dd id=\"mg-permTxt\">\u2013</dd><dt>Dirt cleared</dt><dd id=\"mg-clearTxt\">\u2013</dd></dl></section>\n    </div>\n    <div class=\"mg-col b\">\n      <section><h3>Loadout <small id=\"mg-mountTxt\"></small></h3><div class=\"mounts\" id=\"mg-mounts\"></div><p class=\"note\" id=\"mg-lockTxt\"></p></section>\n      <section><h3>Attachments <small><span class=\"spill\" id=\"mg-spillTxt\">0</span> spill · <span id=\"mg-spillMult\" title=\"Spill from each kill is multiplied by the square root of your dirt's lasting value: contract bonus × Market Contacts × Dirt Moved achievements\"></span></small></h3><div class=\"ups\" id=\"mg-ups\"></div></section>\n    </div>\n  </div>\n  <section class=\"mg-gear\"><h3>Gleaner upgrades <small id=\"mg-saving\">hull, defense, cones, moons</small></h3><div class=\"gups\" id=\"mg-gups\"></div></section>\n</div>";
 
 // ================= tuning =================
 const T = {
@@ -8278,7 +8279,8 @@ const T = {
   hpGrow: 1.13, dmgGrow: 1.06, spillGrow: 1.10,   // spill: 1.08 → 1.10 (Nov 12) so deeper runs pay their way        // per wave
   depthHp: 25,                                         // enemy hp × (1 + depth / this)
   battPerWave: 0.016, battHalfLife: 1800, battMax: 0.5, // charge added per wave (scaled), half-life in main-game s, boost at full charge
-  earnEvery: 1800, bankCap: 6,                         // time off: one run per 30 main-game minutes, up to 6 banked (any more is forfeited)
+  earnEvery: 3600, bankCap: 6, pay: 2, pdayPay: 3,   // V10: one run per hour of main-game time, paying double (personal days triple)
+                          // time off: one run per 30 main-game minutes, up to 6 banked (any more is forfeited)
   permPerDecade: 0.25,                                 // permanent Conversion ×(1 + 0.25 per power of ten past 10 dirt cleared, lifetime): 100 → ×1.25, 1,000 → ×1.5
   mountsBase: 1, mountsMax: 9,
   headPer: 0.05, spillPow: 0.75, defLoad: ["static", "suction", "shaker"],   // Break room autoplay's loadout when you haven't picked one
@@ -8320,7 +8322,7 @@ function bind() {   // point at this save's Meaner Gleaner (a new game or a load
   return G;
 }
 const depthNow = () => S.map || 1;
-function gagTune() { try { T.bankCap = (gagDone("chair") ? 7 : 6) + Math.min(BAL.mgBankPerPromoMax, (S && S.office && S.office.promos) || 0) * BAL.mgBankPerPromo; /* v9: +1 banked break per promotion, so longer runs don't mean more trips to the Break room */ T.battHalfLife = gagDone("earth") ? 1980 : 1800; if (G && G.up && T.mountsBase + G.up.mounts > T.mountsMax) G.up.mounts = T.mountsMax - T.mountsBase; } catch (e) {} }   // the chair and Earthrise gag perks; 9 mounts in all (Nov 16: the old 10th mount from contract 18 is gone)
+function gagTune() { try { T.bankCap = (gagDone("chair") ? 7 : 6) + Math.floor(Math.min(BAL.mgBankPerPromoMax, (S && S.office && S.office.promos) || 0) * BAL.mgBankPerPromo); /* v9: +1 banked break per promotion, so longer runs don't mean more trips to the Break room */ T.battHalfLife = gagDone("earth") ? 1980 : 1800; if (G && G.up && T.mountsBase + G.up.mounts > T.mountsMax) G.up.mounts = T.mountsMax - T.mountsBase; } catch (e) {} }   // the chair and Earthrise gag perks; 9 mounts in all (Nov 16: the old 10th mount from contract 18 is gone)
 const annexNow = () => Math.max(0, ...[0, 1, 2, 3].map(k => annexes(k)));   // the most annexes on any tower orbit the Gleaner
 // ================= derived numbers =================
 const mounts = () => T.mountsBase + G.up.mounts;
@@ -8330,6 +8332,8 @@ const attDmg = (k) => Math.pow(1.22, G.up.att[k]) * clockMult();    // damage mu
 const attRate = (k) => Math.pow(1.05, G.up.att[k]);   // fire rate multiplier
 const SPIN_NOTE = "Spins clockwise: mount 1 leads, each mount sweeps right behind the one before it.";
 const unlocked = (k) => mounts() >= ATT[k].unlock;   // each new mount brings the next attachment
+const runPay = () => (R && R.pday ? T.pdayPay : T.pay);   // V10: fewer, bigger breaks
+const chargeAdd = (x) => { for (let k = 0; k < runPay(); k++) G.charge += x * (1 - G.charge); };   // the battery fills as if the wave counted runPay() times
 const permMult = () => 1 + T.permPerDecade * Math.max(0, Math.log10(Math.max(1, G.cleared)) - 1);
 const boost = () => T.battMax * G.charge;
 const cost = {
@@ -8378,14 +8382,14 @@ function headStart() {   // skip ahead: the skipped waves count as cleared and p
     const k = 2 + Math.floor(w * 1.5), bun = w >= 3 ? Math.floor((k + 1) / 3) : 0, rest = k - bun, per = w >= 6 ? 0.78 * 2 + 0.22 * 1.5 : 2;
     got += (bun * 4 * FOES.bunny.spill + rest * per + (w % 5 === 0 ? FOES.boss.spill : 0)) * Math.pow(T.spillGrow, w - 1);
     n += bun * 4 + rest + (w % 5 === 0 ? 1 : 0) + (w >= 6 ? rest * 0.22 * 2 : 0);
-    if (w < to - 1) G.charge += T.battPerWave * (1 + w / 8) * (1 - G.charge);   // startWave charges for the last one
+    if (w < to - 1) chargeAdd(T.battPerWave * (1 + w / 8));   // startWave charges for the last one
   }
-  got *= spillMult() * (R.pday ? 2 : 1); G.spill += got; R.earned += got; R.kills += Math.round(n); G.cleared += Math.round(n); R.head = to;
+  got *= spillMult() * runPay(); G.spill += got; R.earned += got; R.kills += Math.round(n); G.cleared += Math.round(n); R.head = to;
   R.wave = to - 1; startWave();
 }
 function startWave() {
   if (R.wave > 0) {   // the last wave was survived: charge the battery (more for later waves, less as it fills)
-    G.charge += T.battPerWave * (1 + R.wave / 8) * (1 - G.charge);
+    chargeAdd(T.battPerWave * (1 + R.wave / 8));
     if (R.wave > G.best) G.best = R.wave;
   }
   R.wave++; R.waveT = 0;
@@ -8416,7 +8420,7 @@ function hurt(e, d, src) {   // src: the attachment kind dealing it (none for mo
   e.hp -= d; e.flash = 0.08;
   if (e.hp <= 0) {
     R.kills++; G.cleared++;
-    const got = FOES[e.type].spill * Math.pow(T.spillGrow, R.wave - 1) * spillMult() * (R.pday ? 2 : 1); G.spill += got; R.earned += got;   // personal days pay double
+    const got = FOES[e.type].spill * Math.pow(T.spillGrow, R.wave - 1) * spillMult() * runPay(); G.spill += got; R.earned += got;   // V10: every run pays double, personal days triple
     if (e.type === "blob") for (let k = 0; k < 2; k++) spawn("mini", 0, e.x + (k ? 8 : -8), e.y + (k ? -6 : 6));
     R.fx.push({ x: e.x, y: e.y, r: e.r, t: 0, life: 0.35, color: FOES[e.type].color, pop: true });
   }
@@ -8733,13 +8737,13 @@ function renderStats() {
   $("clearTxt").textContent = `${fmt(G.cleared)} → ×${(1 + T.permPerDecade * (Math.log10(nextDec) - 1)).toFixed(2)} at ${fmt(nextDec)}`;
   // time off
   const clk = (sec) => { sec = Math.max(0, Math.round(sec)); const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s2 = sec % 60; return h ? `${h}h ${String(m).padStart(2, "0")}m` : `${m}m ${String(s2).padStart(2, "0")}s`; };
-  const pips = `<span class="bankchip" title="Banked time off: ${G.bank} of ${T.bankCap}"><i class="${G.bank > 0 ? "on" : ""}"></i>×${G.bank}<small>/${T.bankCap}</small></span>` + (G.pdays ? `<span class="pdchip" title="Personal days: double spill, never forfeited"><i class="pd"></i>×${G.pdays}</span>` : "");   // one chip with a count, however many pile up
+  const pips = `<span class="bankchip" title="Banked time off: ${G.bank} of ${T.bankCap}"><i class="${G.bank > 0 ? "on" : ""}"></i>×${G.bank}<small>/${T.bankCap}</small></span>` + (G.pdays ? `<span class="pdchip" title="Personal days: triple spill and charge, never forfeited"><i class="pd"></i>×${G.pdays}</span>` : "");   // one chip with a count, however many pile up
   if ($("pips").dataset.h !== pips) { $("pips").innerHTML = pips; $("pips").dataset.h = pips; }
-  $("bankTxt").textContent = `${G.bank} of ${T.bankCap} banked` + (G.pdays ? ` + ${G.pdays} personal day${G.pdays === 1 ? "" : "s"}` : "") + (R.pday && !R.dead ? " · on a personal day (×2 spill)" : "");
+  $("bankTxt").textContent = `${G.bank} of ${T.bankCap} banked` + (G.pdays ? ` + ${G.pdays} personal day${G.pdays === 1 ? "" : "s"}` : "") + (R.pday && !R.dead ? " · on a personal day (×3 pay)" : "");
   $("earnTxt").textContent = clk(T.earnEvery - G.workT);
   $("ovTxt").textContent = G.overflow ? `${G.overflow} forfeited` : "none yet";
   let oh = "";
-  if (R.dead && R.cool <= 0) oh = `<b>${R.auto ? "Autoplay's break" : R.ended && R.wave ? "Hull breached" : "On break"}</b><span>${R.auto ? `Autoplay took the last break for you and held to wave ${R.wave}.` : R.wave ? `Fell on wave ${R.wave}.` : "No run going yet."}</span><div class="row">${G.bank > 0 ? `<button type="button" data-o="next">${R.wave ? "Next run" : "Start a run"} (${G.bank} banked)</button>` : ""}${G.pdays > 0 ? `<button type="button" data-o="pday" class="pd-btn">Take a personal day (${G.pdays}) · ×2 spill</button>` : ""}<button type="button" data-o="work">Back to work</button></div>`;
+  if (R.dead && R.cool <= 0) oh = `<b>${R.auto ? "Autoplay's break" : R.ended && R.wave ? "Hull breached" : "On break"}</b><span>${R.auto ? `Autoplay took the last break for you and held to wave ${R.wave}.` : R.wave ? `Fell on wave ${R.wave}.` : "No run going yet."}</span><div class="row">${G.bank > 0 ? `<button type="button" data-o="next">${R.wave ? "Next run" : "Start a run"} (${G.bank} banked)</button>` : ""}${G.pdays > 0 ? `<button type="button" data-o="pday" class="pd-btn">Take a personal day (${G.pdays}) · ×3 spill</button>` : ""}<button type="button" data-o="work">Back to work</button></div>`;
   else if (R.dead) oh = `<b>Hull breached</b><span>Fell on wave ${R.wave}.</span>`;
   over.hidden = !oh;
   if (overBox.dataset.h !== oh) { overBox.innerHTML = oh; overBox.dataset.h = oh; }
