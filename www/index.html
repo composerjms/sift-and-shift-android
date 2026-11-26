@@ -4994,13 +4994,15 @@ function multRows() {
     { label: "Game speed", c: [cell(null), cell(null), cell(null), cell(achPart, `${achCount()} achievements × 1%${gagDone("coffee") ? " · coffee ×1.1" : ""}`), cell(achSpeed() / achPart, "waiting-room chairs, the gym and the lobby"), cell(null)] },
   ];
 }
-function autoSpeedTable() {   // v9: what Auto speed has learned on this computer, map by map, and the button that means right now
+function autoSpeedTable() {
+  // v9: what Auto speed has learned on this computer, map by map, and the button that means right now
+  const asCols = document.body.classList.contains("phone") ? 5 : 10;   // Nov 26: five to a row on a phone
   const A = autoLearned(), D = autoDeltas(), a = achSpeed(), maps = Object.keys(A).map(Number).sort((x, y) => x - y);
   const head = `<p class="note">What Auto speed has learned on this computer: for each map number, the total rate it starts at (speed button × achievement game speed), and the button that comes to right now at game speed ×${a.toFixed(2)}. A map climbs during play when there's room and eases down when frames fall behind; a map that finishes without slowing starts one notch faster next time. ${autoSpeed ? `Auto is on: <b>map ${S.map}, ${speed}×</b> right now.` : "Auto is off."}</p>`;
   if (!maps.length) return head + `<p class="note">Nothing learned yet. Turn on Auto and play a few maps.</p>`;
   const cells = maps.map((m) => { const r = A[m], btn = Math.max(1, Math.min(BAL.autoSpeedMax, Math.round(r / a))), now = m === S.map, d = D[m] || 0, dir = d >= 0.5 ? " as-up" : d <= -0.5 ? " as-down" : "";
-    return `<div class="as-cell${now ? " now" : ""}${dir}" style="grid-column:${(m - 1) % 10 + 1};grid-row:${Math.floor((m - 1) / 10) + 1}" title="Map ${m}: learned total rate ${r}${d ? ` (${d > 0 ? "+" : ""}${d} last time)` : ""}, button ${btn}× at game speed ×${a.toFixed(2)}"><b>${m}</b><span>${Math.round(r)}</span><small>${btn}×</small></div>`; }).join("");
-  return head + `<div class="as-grid">${cells}</div><p class="note">Big number: the learned total rate (game seconds per real second). Small number: the speed button that comes to right now. Green went up the last time that map was played, red came down. Ten maps to a row. ${maps.length} map${maps.length > 1 ? "s" : ""} learned. Settings has a button to forget them.</p>`;
+    return `<div class="as-cell${now ? " now" : ""}${dir}" style="grid-column:${(m - 1) % asCols + 1};grid-row:${Math.floor((m - 1) / asCols) + 1}" title="Map ${m}: learned total rate ${r}${d ? ` (${d > 0 ? "+" : ""}${d} last time)` : ""}, button ${btn}× at game speed ×${a.toFixed(2)}"><b>${m}</b><span>${Math.round(r)}</span><small>${btn}×</small></div>`; }).join("");
+  return head + `<div class="as-grid" style="grid-template-columns:repeat(${asCols},minmax(0,1fr))">${cells}</div><p class="note">Big number: the learned total rate (game seconds per real second). Small number: the speed button that comes to right now. Green went up the last time that map was played, red came down. ${asCols === 5 ? "Five" : "Ten"} maps to a row. ${maps.length} map${maps.length > 1 ? "s" : ""} learned. Settings has a button to forget them.</p>`;
 }
 function fmtX(v) { return "×" + (v < 10 ? v.toFixed(2) : v < 1000 ? v.toFixed(v < 100 ? 1 : 0) : fmt(v)); }
 function multTable(share) {
