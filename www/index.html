@@ -648,8 +648,16 @@ body.phone .panel .pane :is(table) { display: block; overflow-x: auto; max-width
 body.phone .controls .btn { padding: 0 8px; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 body.phone .ph-speed { min-width: 76px; flex: none; }
 body.phone #pauseBtn, body.phone #menuBtn { flex: none; width: 44px; padding: 0; font-size: 0; display: grid; place-items: center; }
-body.phone #pauseBtn::before { content: "\275A\275A"; font-size: 0.8rem; letter-spacing: -1px; }
-body.phone #pauseBtn[data-p="1"]::before { content: "\25B6"; font-size: 1rem; letter-spacing: 0; }
+body.phone #pauseBtn::before { content: ""; width: 4px; height: 14px; background: currentColor; box-shadow: 7px 0 0 currentColor; margin-right: 7px; }
+body.phone #pauseBtn[data-p="1"]::before { width: 0; height: 0; background: none; box-shadow: none; margin: 0 0 0 3px; border-style: solid; border-width: 8px 0 8px 13px; border-color: transparent transparent transparent currentColor; }
+html:has(body.phone) { font-size: 14px; }
+body.phone { font-size: 13.5px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body.phone #autoBtn { font-size: 0; }
+body.phone #autoBtn::before { content: "Autoplay"; font-size: 13.5px; }
+body.phone #autoBtn[aria-pressed="false"] { color: var(--muted); }
+body.phone .ph-speed { font-size: 0.8rem; min-width: 0; width: 104px; padding: 0 4px; }
+body.phone #officeBtn { flex: 1 1 auto; max-width: none; }
+
 body.phone #menuBtn::before { content: "\2630"; font-size: 1.2rem; }
 body.phone .panel .pane { align-content: start; justify-content: stretch; }
 body.phone #officeBtn { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
@@ -679,7 +687,7 @@ body.phone .board-col > .toast, body.phone .board-col > .chatter { left: 8px; }
 body.phone:not([data-pv="map"]) .board-col { flex: 0 0 0; overflow: visible; }
 body.phone:not([data-pv="map"]) .board-col > :not(.csum-wrap):not(.ach-pop):not(.watch-hud):not(.watch-exit):not(.watch-shop) { display: none !important; }
 body.phone[data-pv="map"] .main > .panel { display: none !important; }
-body.phone .panel { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; border: 0; background: transparent; }
+body.phone .panel { flex: 1 1 0; min-height: 0; width: 100%; align-self: stretch; margin: 0; box-sizing: border-box; padding: 0; display: flex; flex-direction: column; border: 0; background: transparent; }
 body.phone .panel > .tabs, body.phone .panel > .report-card { display: none !important; }
 body.phone .panel .pane { flex: 1 1 0; min-height: 0; max-height: none; overflow-y: auto; padding: 4px 0 12px; }
 .ph-sub { display: flex; gap: 6px; padding: 2px 0 8px; }
@@ -1115,10 +1123,10 @@ THE SOFTWARE.</pre></details>
     <div><span class="lbl" title="Layers of dirt still on the board, across every cell">Layers remaining</span><span class="val" id="rDepth">—</span></div>
     <div><span class="lbl">Cleared</span><span class="val" id="rProg">0%</span></div>
     <div><span class="lbl">Dirt / sec</span><span class="val" id="rRate">0</span></div>
-    <div><span class="lbl">Map time</span><span class="val" id="rTime">0s</span></div>
+    <div><span class="lbl"><span class="ph-hide">Map time</span><span class="ph-only">Time</span></span><span class="val" id="rTime">0s</span></div>
     <div><span class="lbl">Map size</span><span class="val" id="rSize">10×10</span></div>
     <div><span class="lbl" title="Average time from a cell's first dig to clean, over cells finished this map (last map's average until one finishes)">Avg cell time</span><span class="val" id="rCellT">—</span></div>
-    <div><span class="lbl" title="Remaining dirt divided by the crew's recent dirt per second. Does not include the walk home at the end.">Projected finish</span><span class="val" id="rEta">—</span></div>
+    <div><span class="lbl" title="Remaining dirt divided by the crew's recent dirt per second. Does not include the walk home at the end."><span class="ph-hide">Projected finish</span><span class="ph-only">Finish</span></span><span class="val" id="rEta">—</span></div>
   </section>
   <section class="dps" aria-label="Dig per second by tool type, by phase">
     <div class="dps-h"><span id="dpsTitle">Dig / sec by type</span><div class="dps-key" id="dpsKey"></div><div class="seg" id="dpsSeg" role="group" aria-label="Maps to average"></div></div>
@@ -8116,7 +8124,7 @@ function phUpdate() {
   const sel = document.getElementById("phSpeed");
   if (document.activeElement !== sel) {
     sel.value = autoSpeed ? "auto" : String(speed);
-    sel.options[sel.options.length - 1].textContent = autoSpeed ? `Auto · ${Math.round(speed)}×` : "Auto";
+    sel.options[sel.options.length - 1].textContent = autoSpeed ? `Auto ${Math.round(speed)}×` : "Auto";
   }
   document.querySelectorAll("#phView button").forEach(b => b.setAttribute("aria-pressed", String((b.dataset.v === "3d") === !!V3.on)));
   try { document.getElementById("phSite").textContent = `${capFirst(siteName(S.contract.n))} · ${W}×${H}`; } catch (e) {}
