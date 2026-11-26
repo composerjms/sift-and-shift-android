@@ -630,7 +630,9 @@ select {
 .savebox textarea { width: 100%; font-family: var(--f-mono); font-size: 0.72rem; background: var(--panel-2); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; padding: 8px; word-break: break-all; }
 #saveMsg.err { color: var(--warn); }
 /* title screen */
-.title-screen { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 16, 0.96); overflow-y: auto; }
+html { overflow-x: clip; }   /* Nov 26: no sideways wobble on phones */
+html:has(#titleScreen:not([hidden])), html:has(#tapeWrap), html:has(#mgRoom:not([hidden])) { overflow: hidden; }   /* a full-screen card: the page behind it doesn't scroll */
+.title-screen { overscroll-behavior: contain; position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 16, 0.96); overflow-y: auto; }
 .title-card select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }   /* a long option no longer stretches the card */
 .title-card { grid-template-columns: minmax(0, 1fr); }   /* the card's single column can never be pushed wider than the card */
 .title-card div, .title-card label, .title-card section, .title-card details { min-width: 0; max-width: 100%; }
