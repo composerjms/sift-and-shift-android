@@ -1362,6 +1362,7 @@ const BAL = {
   gleanerMomentum: 0.05,    // Gleaner travel speed +5% per clean cell crossed in a row; resets when it stops to collect
   // new contracts (global prestige)
   contractMap: 10,          // the first new contract can be signed from this map on ...
+  contractShift0: 4,        // V10: ... minus 4 maps on the first run, 3 after one promotion, and so on (none from promotion 4)
   contractEarlySteps: [[10, 1], [20, 2]],   // Nov 17: +1 map a contract for contracts 1–10, +2 for 11–20, then contractStep (+3, rising every 50)
   contractStep: 3, contractStepEvery: 50,   // ... and from contract 21 each one needs this many maps more, +1 more every 50 contracts (51+: 4, 101+: 5, ...)
   contractDust: 0.25,       // each contract multiplies dirt value by 1 + this ... (v5a: was 0.5)
@@ -1753,7 +1754,8 @@ const perBase = () => Math.min(BAL.baseCap, BAL.perBase + Math.min(S.contract ? 
 const contractStepFor = (k) => { const j = offSched(); if (k <= 10) return 1; if (k <= 20) return j >= 4 ? 1 : 2;   // Nov 23: the Job board ladder: no rise, then 1/2/2, 1/2/1, 1/1/1
   for (const [upTo, st] of BAL.contractEarlySteps || []) if (k <= upTo) return st;
   return j >= 4 ? 1 : j === 3 ? 1 : j === 2 ? 2 : j === 1 ? BAL.contractStep : BAL.contractStep + Math.floor(k / BAL.contractStepEvery); };   // the step after contract k is signed
-const contractMapAt = (n) => { let m = BAL.contractMap; for (let k = 1; k <= n; k++) m += contractStepFor(k); return m; };   // n = contracts signed
+const contractShift = () => Math.max(0, BAL.contractShift0 - ((S && S.office && S.office.promos) || 0));   // V10: the first runs open every contract earlier (−4 at promotion 0, −3 at 1 … none from 4)
+const contractMapAt = (n) => { let m = BAL.contractMap - contractShift(); for (let k = 1; k <= n; k++) m += contractStepFor(k); return m; };   // n = contracts signed
 const contractMapNow = () => contractMapAt(S.contract ? S.contract.n : 0);
 const contractBonus = () => (BAL.contractDust + BAL.contractPerMap * Math.max(0, S.map - contractMapNow()) * offPlate()) * achB("contract") + (gagDone("brochure") ? 0.01 : 0) + ((siteQuirk() || {}).contract || 0);   // Homeowners: +1% of the bonus each
 const contractReady = () => S.map >= contractMapNow() && !(typeof atCap === "function" && atCap());   // v8: no signing past this run's contract cap
