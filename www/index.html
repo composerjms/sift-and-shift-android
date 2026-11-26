@@ -519,6 +519,7 @@ body.watching.still .cam-seg { opacity: 0; pointer-events: none; }   /* 3D: a wi
 .ach-l li { padding: 6px 8px; border-radius: 4px; border: 1px dashed var(--line, rgba(128,128,128,.35)); opacity: .55; display: grid; gap: 2px; }
 .ach-l li b { font-size: .85rem; }
 .ach-l li span { font-size: .72rem; color: var(--muted); }
+.ach-l li.unk { opacity: .32; }
 .ach-l li.got { opacity: 1; border-style: solid; border-color: #c99a2e; background: rgba(201,154,46,.12); }
 .ach-reset { margin-top: 10px; }
 #storyBody { max-height: min(70vh, 680px); overflow-y: auto; display: grid; gap: 8px; }
@@ -4994,7 +4995,7 @@ function statTables(hud) {   // hud: the full-screen view, which shows the contr
   const progTable = progRows ? `<table class="st"><thead><tr><th>Contract</th><th>Site</th><th class="n" title="Furthest map reached">Furthest map</th><th class="n" title="Game time from map 1 to the start of map 10">To map 10</th><th class="n" title="Dirt cleared per hour of game time, finished maps only">Dirt / hour</th></tr></thead><tbody>${progRows}</tbody></table>
     <p class="note">Progress shows up three ways: further (furthest map), faster (time to map 10) and more (dirt per hour). Game time throughout.</p>` : "";
   const gameRows = card("Game",
-    row("Game speed", `×${gameRate().toFixed(2)}`, `${speed}× button × ${achSpeed().toFixed(2)} (${achCount()} achievements)`) +
+    row("Game speed", `×${gameRate().toFixed(2)}`, `${speed}× button × ${achSpeed().toFixed(2)} (${achCount()} achievements this run, ${achEverN()} ever)`) +
     row("Next auto purchase", nextBuyText()[0], nextBuyText()[1]) +
     (!hud && contractStatus() ? row("Contract", "", escHtml(contractStatus().text)) : "") +
     row("Crew efficiency", `×${statMult().toFixed(2)}`, `×${BAL.contractStat} per contract signed (speed, travel, tanks)`) +
@@ -5016,7 +5017,7 @@ function nextBuyText() {
 const MULT_SRC = ["Shop", "Contract", "Research", "Achievements & gags", "Office", "Tech Testing"];
 function multRows() {
   const o = oc(), up = S.up || {}, cell = (v, how) => ({ v, how });   // v null = nothing in that column can touch this stat
-  const achPart = (1 + 0.01 * achCount()) * (gagDone("coffee") ? 1.1 : 1);
+  const achPart = (1 + 0.01 * achEverN()) * (gagDone("coffee") ? 1.1 : 1);
   const shopSale = 1 + BAL.salePerLevel * (up.sale || 0), till = offTill();
   const dig = (label, shop, shopHow, offOwn, ttId, protoId, isX) => ({ label, c: [
     cell(shop, shopHow), cell(statMult(), "contract stat bonus (grows with each contract signed)"), cell(R("suction"), "Suction Power research"),
@@ -5034,7 +5035,7 @@ function multRows() {
       cell(achB("sale"), "sale achievements, gag perks, site conditions"), cell((shopSale + till) / shopSale * offSale(), `Cash register +$${till.toFixed(2)} · sale pieces ×${offSale().toFixed(2)}`), cell(null)] },
     { label: "Crew XP", c: [cell(xpMult(), `Training Lv ${up.train || 0} · Mentorship Lv ${up.mentor || 0}`), cell(null), cell(R("training"), "Training research"), cell(achB("xp"), "XP achievements and gag perks"), cell(offXP(), "Office XP pieces and room bonus"), cell(null)] },
     { label: "Research XP", c: [cell(null), cell(null), cell(null), cell(achB("res"), "Frequent Flyer and Lab Rats"), cell(o.res, `R&D room${o.grant ? ` · Research grant ×${o.grantM.toFixed(2)} on one track` : ""}`), cell(null)] },
-    { label: "Game speed", c: [cell(null), cell(null), cell(null), cell(achPart, `${achCount()} achievements × 1%${gagDone("coffee") ? " · coffee ×1.1" : ""}`), cell(achSpeed() / achPart, "waiting-room chairs, the gym and the lobby"), cell(null)] },
+    { label: "Game speed", c: [cell(null), cell(null), cell(null), cell(achPart, `${achEverN()} achievements ever earned × 1%${gagDone("coffee") ? " · coffee ×1.1" : ""}`), cell(achSpeed() / achPart, "waiting-room chairs, the gym and the lobby"), cell(null)] },
   ];
 }
 function autoSpeedTable() {
@@ -7560,9 +7561,13 @@ function housesNatural(n = contractsSigned()) {   // finished houses across ever
   return h;
 }
 const crewCount = () => S.tools.length;
-const achNew = () => ({ ttV: 2, got: {}, peakDig: 0, peakRes: 0, deep: 1, wide: 100, fused: 0, pb: 0, manual: 0, gaze: 0, sums: 0, flags: {} });
+const achNew = () => ({ v10: 1, ttV: 2, got: {}, peakDig: 0, peakRes: 0, deep: 1, wide: 100, fused: 0, pb: 0, manual: 0, gaze: 0, sums: 0, flags: {} });
 function achS() {   // S.ach, made on first use. A save from before achievements gets a quiet first check (no flood of pop-ups)
   if (!S.ach) { S.ach = achNew(); S.ach.silent = true; }
+  if (!S.ach.v10) {   // V10: the series are twenty steps now and the ids mean new things: earn them again, quietly
+    S.ach.got = {}; S.ach.silent = true; S.ach.v10 = 1;
+    try { const O = officeS(); if (O && !O.achV10) { O.achEver = {}; O.achV10 = 1; } } catch (e) {}
+  }
   const d = achNew(); for (const k in d) if (S.ach[k] === undefined) S.ach[k] = d[k];
   return S.ach;
 }
@@ -7577,14 +7582,14 @@ const flagged = (id) => !!GA.flags[id];
 const bestPay = () => Math.max(S.totalSold || 0, ...((S.contract && S.contract.history) || []).map(h => (h.sum && h.sum.money) || 0));
 const maxSwift = () => S.tools.reduce((a, t) => Math.max(a, (t.spec && t.spec.swift) || 0), 0);
 const steps = (vals, names, unit, fmtV) => vals.map((v, k) => ({ name: names[k], need: v, how: unit.replace("{v}", (fmtV || fmt)(v)) }));
-const ACH_SERIES = [
+const ACH_SERIES = [   // V10: twenty steps a series, paced so a run at the final room key's cap (contract 90) earns about three quarters of them
   { id: "dirt", name: "Dirt Moved", boost: "dirt sale price", per: 0.01, key: "sale", metric: () => lifetimeDirt(),
-    list: steps([1e3, 1e4, 5e4, 25e4, 1e6, 5e6, 25e6, 1e8, 5e8, 25e8],
-      ["It's Just Dirt", "Shovel Ready", "Topsoil Tourist", "Dirt Cheap", "Groundbreaker", "Earth Mover", "Clod Hopper", "Terraformer-ish", "Planetary Groomer", "Dirt Is Life"],
+    list: steps([1e3, 1e4, 5e4, 1e5, 25e4, 5e5, 1e6, 25e5, 1e7, 25e6, 1e8, 5e8, 25e8, 2e10, 25e10, 5e11, 75e10, 1e12, 2e12, 3e12],
+      ["It's Just Dirt", "Shovel Ready", "Dust Bunny", "Topsoil Tourist", "Wheelbarrow", "Dirt Cheap", "Mud Season", "Groundbreaker", "Backfill", "Earth Mover", "Landfill Legend", "Clod Hopper", "Mountain Mover", "Terraformer-ish", "Planetary Groomer", "Moon Maker", "Orbital Debris", "Asteroid Belt", "Accretion Disk", "Dirt Is Life"],
       "Dig {v} dirt, all contracts together") },
   { id: "flyer", name: "Frequent Flyer", boost: "research speed", per: 0.01, key: "res", metric: () => contractsSigned(),
-    list: steps([1, 2, 3, 5, 7, 10, 11, 15, 21, 31],
-      ["Signed, Sealed", "Passport Stamped", "Space Commuter", "Mileage Club", "Long Haul", "Full Loop", "Breaking Ground", "Repeat Customer", "Halfway Home", "Move-In Ready"],
+    list: steps([1, 2, 3, 4, 5, 6, 8, 10, 13, 18, 26, 36, 48, 65, 90, 94, 98, 102, 106, 110],
+      ["Signed, Sealed", "Passport Stamped", "Space Commuter", "Carry-On Only", "Mileage Club", "Seat Upgrade", "Long Haul", "Full Loop", "Breaking Ground", "Repeat Customer", "Halfway Home", "Platinum Status", "Jet Lag", "Red-Eye", "Move-In Ready", "Window Seat", "Lounge Access", "Diamond Medallion", "Lifetime Status", "Grand Tourer"],
       "Sign {v}", v => v === 1 ? "your first contract" : v + " contracts") },
   { id: "work", name: "Workforce", boost: "off hiring prices", per: 0.01, key: "hire", list: [
     { name: "Help Wanted", how: "Hire a sweeper or rake", test: () => crewCount() >= 3 },
@@ -7592,84 +7597,114 @@ const ACH_SERIES = [
     { name: "Small Business", how: "Have 5 crew", test: () => crewCount() >= 5 },
     { name: "Full Set", how: "Have a sweeper, a rake and a Gleaner at once", test: () => countType("single") + countType("ssweep") > 0 && S.tools.some(isR) && S.tools.some(isG) },
     { name: "Payroll", how: "Have 10 crew", test: () => crewCount() >= 10 },
-    { name: "Speed Trap", how: "Get a Gleaner up to the board's speed limit", test: () => S.tools.some(t => isG(t) && gleanerSteady(t) >= gleanerCap()) },
     { name: "Fleet of Foot", how: "Give one tool 15 ranks of Swift", test: () => maxSwift() >= 15 },
     { name: "Overqualified", how: "Get any repeatable upgrade to Lv 20", test: () => ACH_UPS.some(u => (S.up[u] || 0) >= 20) },
-    { name: "Union Meeting", how: "Have 20 crew", test: () => crewCount() >= 20 },
+    { name: "Speed Trap", how: "Get a Gleaner up to the board's speed limit", test: () => S.tools.some(t => isG(t) && gleanerSteady(t) >= gleanerCap()) },
     { name: "Middle Management", how: "Get sale price, Gleaner suction, training, sweeper speed, rake speed and treads all to Lv 15", test: () => ACH_UPS.every(u => (S.up[u] || 0) >= 15) },
+    { name: "Corner Cubicle", how: "Get any repeatable upgrade to Lv 35", test: () => ACH_UPS.some(u => (S.up[u] || 0) >= 35) },
+    { name: "Tenured", how: "Get any repeatable upgrade to Lv 50", test: () => ACH_UPS.some(u => (S.up[u] || 0) >= 50) },
+    { name: "Union Meeting", how: "Have 20 crew", test: () => crewCount() >= 20 },
+    { name: "Executive Suite", how: "Get those six upgrades all to Lv 25", test: () => ACH_UPS.every(u => (S.up[u] || 0) >= 25) },
+    { name: "Head Count", how: "Have 25 crew", test: () => crewCount() >= 25 },
+    { name: "Lifer", how: "Get any repeatable upgrade to Lv 90", test: () => ACH_UPS.some(u => (S.up[u] || 0) >= 90) },
+    { name: "Board of Directors", how: "Get those six upgrades all to Lv 35", test: () => ACH_UPS.every(u => (S.up[u] || 0) >= 35) },
+    { name: "Department Store", how: "Have 30 crew", test: () => crewCount() >= 30 },
+    { name: "Centurion", how: "Get any repeatable upgrade to Lv 100", test: () => ACH_UPS.some(u => (S.up[u] || 0) >= 100) },
+    { name: "Company Town", how: "Have 35 crew", test: () => crewCount() >= 35 },
+    { name: "Fully Vested", how: "Get those six upgrades all to Lv 45", test: () => ACH_UPS.every(u => (S.up[u] || 0) >= 45) },
   ] },
   { id: "lab", name: "Lab Rats", boost: "research speed", per: 0.01, key: "res", list: [
     { name: "Ivory Tower", how: "Build a research tower", test: () => anyLab() },
     { name: "Lab Coat", how: "Reach 10 research levels in total", test: () => resLevels() >= 10 },
     { name: "Peer Reviewed", how: "Reach 25 research levels in total", test: () => resLevels() >= 25 },
     { name: "Tenure Track", how: "Get one research track to Lv 10", test: () => RESEARCH.some(r => resLvl(r.id) >= 10) },
+    { name: "Satellite Campus", how: "Add an annex to a research tower", test: () => LABS.some((_, k) => annexes(k) > 0) },
     { name: "Grant Funded", how: "Reach 50 research levels in total", test: () => resLevels() >= 50 },
     { name: "Triangulated", how: "Have three research towers built", test: () => LABS.filter((_, k) => labBuilt(k)).length >= 3 },
     { name: "Breakthrough", how: "Reach 100 research levels in total", test: () => resLevels() >= 100 },
-    { name: "Polymath", how: "Get every research track to Lv 15", test: () => RESEARCH.every(r => resLvl(r.id) >= 15) },
     { name: "Specialist", how: "Get one research track to Lv 25", test: () => RESEARCH.some(r => resLvl(r.id) >= 25) },
+    { name: "North Star", how: "Have all four research towers built", test: () => LABS.every((_, k) => labBuilt(k)) },
+    { name: "Wing Built", how: "Give one research tower all five annexes", test: () => LABS.some((_, k) => annexes(k) >= 5) },
+    { name: "Converted", how: "Get a tower's Dirt Conversion to Lv 25", test: () => LABS.some((_, k) => convLvl(k) >= 25) },
+    { name: "Ivy League", how: "Reach 150 research levels in total", test: () => resLevels() >= 150 },
+    { name: "Full Campus", how: "Give every research tower all five annexes", test: () => LABS.every((_, k) => annexes(k) >= 5) },
+    { name: "Department Head", how: "Get one research track to Lv 40", test: () => RESEARCH.some(r => resLvl(r.id) >= 40) },
     { name: "Mad Science", how: "Reach 250 research levels in total", test: () => resLevels() >= 250 },
+    { name: "Reconverted", how: "Get a tower's Dirt Conversion to Lv 50", test: () => LABS.some((_, k) => convLvl(k) >= 50) },
+    { name: "Polymath", how: "Get every research track to Lv 15", test: () => RESEARCH.every(r => resLvl(r.id) >= 15) },
+    { name: "Faculty Lounge", how: "Get every tower's Dirt Conversion to Lv 50", test: () => LABS.every((_, k) => convLvl(k) >= 50) },
+    { name: "Nobel Committee", how: "Get one research track to Lv 60", test: () => RESEARCH.some(r => resLvl(r.id) >= 60) },
   ] },
   { id: "dig", name: "Dig Rate", boost: "dig speed", per: 0.01, key: "dig", metric: () => (S.ach && S.ach.peakDig) || 0,
-    list: steps([10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000],
-      ["Elbow Grease", "Picking Up", "Full Shift", "Overtime", "Heavy Machinery", "Strip Mine", "Dust Storm", "Landslide", "Tectonic", "Continental Drift"],
+    list: steps([10, 20, 25, 30, 35, 50, 100, 400, 1500, 6000, 3e4, 2e5, 75e4, 5e6, 4e7, 5e7, 75e6, 1e8, 15e7, 2e8],
+      ["Elbow Grease", "Picking Up", "Warming Up", "Full Shift", "Second Wind", "Overtime", "Heavy Machinery", "Strip Mine", "Quarry", "Dust Storm", "Mudslide", "Landslide", "Sinkhole", "Tectonic", "Fault Line", "Aftershock", "Richter Scale", "Supervolcano", "Pangaea Again", "Continental Drift"],
       "Hit {v} dirt/sec, even for a moment") },
   { id: "rrate", name: "Research Rate", boost: "tank and canister capacity", per: 0.01, key: "tank", metric: () => (S.ach && S.ach.peakRes) || 0,
-    list: steps([0.5, 1, 2, 3, 5, 8, 12, 20, 35, 50],
-      ["Hypothesis", "Lab Notes", "Pilot Study", "Field Data", "Sample Size", "Statistically Significant", "Replicated", "Meta-Analysis", "Paradigm Shift", "Nobel Adjacent"],
-      "Research towers pull {v} dirt/sec, even for a moment", v => String(v)) },
+    list: steps([0.5, 1, 2, 3, 5, 8, 12, 20, 35, 50, 100, 400, 1500, 7500, 2e4, 25e3, 3e4, 4e4, 5e4, 6e4],
+      ["Hypothesis", "Lab Notes", "Pilot Study", "Field Data", "Sample Size", "Control Group", "Double Blind", "Statistically Significant", "Replicated", "Meta-Analysis", "Grant Renewed", "Citation Needed", "Paradigm Shift", "Big Science", "Particle Accelerator", "Moonshot", "Space Program", "Cold Fusion", "Unified Theory", "Nobel Adjacent"],
+      "Research towers pull {v} dirt/sec, even for a moment", v => v < 1000 ? String(v) : fmt(v)) },
   { id: "home", name: "Homeowners", boost: "contract bonus", per: 0.01, key: "contract", metric: () => housesDone(),
-    list: steps([1, 2, 3, 5, 10, 20, 35, 50, 75, 100],
-      ["Welcome Mat", "Neighbors", "Cul-de-sac", "Block Party", "Subdivision", "Zoning Board", "Commuter Town", "Suburb", "Sprawl", "Every Lot Sold"],
+    list: steps([1, 2, 3, 5, 7, 10, 13, 16, 20, 25, 30, 36, 48, 65, 90, 94, 98, 102, 106, 110],
+      ["Welcome Mat", "Neighbors", "Cul-de-sac", "Picket Fence", "Block Party", "Open House", "Subdivision", "Mortgage Approved", "Zoning Board", "Planned Community", "Commuter Town", "School District", "Suburb", "Strip Mall", "Sprawl", "Gated Community", "Master Plan", "New Town", "Metro Area", "Every Lot Sold"],
       "Finish {v}, across every site", v => v === 1 ? "your first house" : v + " houses") },
   { id: "deep", name: "Deep Dig", boost: "crew XP", per: 0.01, key: "xp", metric: () => achS().deep,
-    list: steps([5, 10, 15, 20, 25, 30, 40, 50, 75, 100],
-      ["Scratching the Surface", "Knee Deep", "Bedrock Curious", "Subsoil", "Strata", "Core Sample", "Down Under", "Mantle Piece", "Abyss Adjacent", "Other Side"],
+    list: steps([3, 6, 10, 12, 14, 16, 20, 25, 32, 40, 48, 57, 68, 85, 110, 114, 118, 122, 126, 230],
+      ["Scratching the Surface", "Ankle Deep", "Knee Deep", "Waist Deep", "Bedrock Curious", "Subsoil", "Strata", "Core Sample", "Down Under", "Fossil Layer", "Mantle Piece", "Magma Adjacent", "Abyss Adjacent", "Deep Time", "Outer Core", "Inner Core", "Molten", "Pressure Cooker", "Halfway Through", "Other Side"],
       "Reach map {v} on any contract", v => String(v)) },
   { id: "wide", name: "Wide Open", boost: "crew travel speed (not Gleaners)", per: 0.01, key: "travel", metric: () => achS().wide,
-    list: steps([11, 12, 13, 14, 15, 16, 18, 20, 22, 25].map(v => v * v),
-      ["Elbow Room", "Spread Out", "Lot Line", "Acreage", "Back Forty", "Wide Load", "Open Range", "Big Sky", "Horizon Line", "Visible From Orbit"],
-      "Work a board of {v} or more", v => `${Math.round(Math.sqrt(v))}×${Math.round(Math.sqrt(v))} (${v} cells)`) },
+    list: steps([[10, 11], [11, 11], [11, 12], [12, 12], [12, 13], [13, 13], [13, 14], [14, 14], [14, 15], [15, 15], [15, 16], [16, 16], [17, 17], [18, 18], [19, 19], [19, 20], [20, 20], [21, 21], [22, 22], [23, 23]].map(([a, b]) => a * b),
+      ["Elbow Room", "Spread Out", "Lot Line", "Acreage", "Back Forty", "Homestead", "Wide Load", "Ranch", "Open Range", "Big Sky", "Prairie", "Plains", "Horizon Line", "County Line", "State Line", "Time Zone", "Curvature", "Wide Angle", "Panorama", "Visible From Orbit"],
+      "Work a board of {v} or more", v => `${v} cells`) },
   { id: "star", name: "Star Power", boost: "every price", per: 0.01, key: "cost", metric: () => S.tools.reduce((a, t) => Math.max(a, t.star || 1), 1),
-    list: steps([3, 5, 8, 12, 16, 20, 25, 30, 40, 50],
-      ["Gold Star", "Rising Star", "Star Pupil", "All-Star", "Star Witness", "Starstruck", "Superstar", "Shooting Star", "Supernova", "Constellation"],
+    list: steps([2, 3, 4, 5, 6, 7, 8, 10, 15, 20, 24, 27, 30, 33, 39, 40, 41, 42, 43, 47],
+      ["Gold Star", "Rising Star", "Star Pupil", "Lucky Star", "Star Student", "All-Star", "Star Witness", "Starstruck", "Superstar", "Shooting Star", "Star Chart", "Red Giant", "Supernova", "Star Cluster", "Constellation", "Galaxy Brain", "Milky Way", "Nebula", "Starfleet", "Big Bang"],
       "Prestige a tool to {v}★", v => String(v)) },
-  { id: "fuse", name: "Fusion", boost: "lucky dirt value", per: 0.01, key: "lucky", metric: () => achS().fused,
-    list: steps([1, 2, 3, 5, 8, 12, 20, 30, 50, 75],
-      ["Better Together", "Merger", "Acquisition", "Hostile Takeover", "Synergy", "Conglomerate", "Holding Company", "Monopoly", "Too Big to Fail", "Singularity"],
+  { id: "fuse", name: "Fusion", boost: "lucky dirt value", per: 0.01, key: "lucky", metric: () => S.fused || 0,   // V10: counts this run's fusions (it read a counter that never moved)
+    list: steps([1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 18, 25, 30, 36, 44, 45, 46, 47, 48, 50],
+      ["Better Together", "Merger", "Acquisition", "Joint Venture", "Hostile Takeover", "Synergy", "Consolidation", "Conglomerate", "Holding Company", "Vertical Integration", "Monopoly", "Trust Buster", "Too Big to Fail", "Megacorp", "Singularity", "Critical Mass", "Chain Reaction", "Fusion Reactor", "Star Forge", "Event Horizon"],
       "Fuse tools {v}, all contracts together", v => v === 1 ? "once" : v + " times") },
   { id: "pay", name: "Payday", boost: "Gleaner suction", per: 0.01, key: "suck", metric: () => bestPay(),
-    list: steps([1e5, 25e4, 1e6, 25e5, 1e7, 25e6, 1e8, 25e7, 1e9, 1e10],
-      ["Pocket Money", "Petty Cash", "Seven Figures", "Bonus Season", "Big Payout", "Golden Parachute", "Nine Figures", "Offshore", "Billable", "Planetary GDP"],
+    list: steps([1e4, 5e4, 1e5, 25e4, 5e5, 1e6, 25e5, 1e7, 5e7, 1e9, 1e11, 1e13, 1e16, 1e19, 25e20, 5e21, 1e22, 15e21, 25e21, 5e22],
+      ["Pocket Money", "Petty Cash", "Tip Jar", "Allowance", "Rainy Day Fund", "Seven Figures", "Bonus Season", "Eight Figures", "Big Payout", "Golden Parachute", "Offshore", "Billable", "Hedge Fund", "Central Bank", "Planetary GDP", "Solar GDP", "Quantitative Easing", "Too Many Zeros", "Scientific Notation", "Post-Scarcity"],
       "Earn {v} in one contract", v => fmtMoney(v)) },
   { id: "pb", name: "Personal Best", boost: "spill", per: 0.01, key: "spill", metric: () => achS().pb,
-    list: steps([1, 2, 3, 5, 8, 12, 20, 30, 50, 75],
-      ["New Record", "Twice Lucky", "Hat Trick", "On a Roll", "Streaking", "Speedrunner", "Efficiency Expert", "Time and Motion", "Lean Process", "Six Sigma"],
+    list: steps([1, 2, 3, 5, 7, 10, 15, 25, 45, 100, 250, 400, 650, 1200, 2500, 2750, 3000, 3250, 3500, 3750],
+      ["New Record", "Twice Lucky", "Hat Trick", "On a Roll", "Streaking", "Hot Hand", "Clockwatcher", "Speedrunner", "Any%", "Efficiency Expert", "Time and Motion", "Lean Process", "Kaizen", "Six Sigma", "Seven Sigma", "World Record", "Frame Perfect", "Tool-Assisted", "Sub-Second", "Speed of Light"],
       "Beat the previous map's time {v}", v => v === 1 ? "once" : v + " times") },
   { id: "brick", name: "Masonry", boost: "brick value", per: 0.01, key: "brick", metric: () => S.bricks || 0,
-    list: steps([1e3, 1e4, 1e5, 1e6, 5e6, 25e6, 1e8, 5e8, 25e8, 1e10],
-      ["Brick One", "Load-Bearing", "Mortarboard", "Brickie", "Built Like One", "Masonry Guild", "Wall Street", "Great Wall", "Brick Moon", "Where Are They Coming From"],
+    list: steps([100, 1e3, 5e3, 1e4, 25e3, 5e4, 1e5, 25e4, 1e6, 25e5, 1e7, 5e7, 4e8, 5e9, 1e10, 12e9, 15e9, 2e10, 3e10, 4e10],
+      ["Brick One", "Hod Carrier", "Load-Bearing", "Mortarboard", "Pallet", "Brickie", "Chimney Stack", "Built Like One", "Cornerstone", "Masonry Guild", "Flying Buttress", "Wall Street", "Cathedral", "Great Wall", "Pyramid Scheme", "Brick Moon", "Dyson Sphere", "Brick Belt", "Brick Planet", "Where Are They Coming From"],
       "Press {v} bricks, all contracts together") },
   { id: "cross", name: "Right of Way", boost: "Crossroad, Interchange and Combine power", per: 0.01, key: "cross", list: [
     { name: "Yield", how: "Hire a Crossroad", test: () => countType("cross") >= 1 },
     { name: "Four-Way Stop", how: "Have 4 Crossroads at once", test: () => countType("cross") >= 4 },
     { name: "Green Light", how: "Prestige a Crossroad to 10★", test: () => S.tools.some(t => t.type === "cross" && t.star >= 10) },
     { name: "Cloverleaf", how: "Fuse two Crossroads into an Interchange", test: () => S.tools.some(t => t.type === "xchg" || t.type === "combine") },
+    { name: "Merge Lane", how: "Prestige an Interchange to 5★", test: () => S.tools.some(t => t.type === "xchg" && t.star >= 5) },
     { name: "Rush Hour", how: "Have 8 Crossroads, Interchanges and Combines at once", test: () => S.tools.filter(isX).length >= 8 },
+    { name: "Flyover", how: "Prestige an Interchange to 10★", test: () => S.tools.some(t => t.type === "xchg" && t.star >= 10) },
     { name: "Spaghetti Junction", how: "Have 3 Interchanges at once", test: () => countType("xchg") >= 3 },
     { name: "Traffic Engineer", how: "Prestige an Interchange to 15★", test: () => S.tools.some(t => t.type === "xchg" && t.star >= 15) },
     { name: "Harvest Moon", how: "Fuse a Combine Harvester", test: () => countType("combine") >= 1 },
-    { name: "Gridlock", how: "Have 16 Crossroads, Interchanges and Combines at once", test: () => S.tools.filter(isX).length >= 16 },
+    { name: "Two Harvests", how: "Have 2 Combine Harvesters at once", test: () => countType("combine") >= 2 },
+    { name: "Bumper Crop", how: "Prestige a Combine Harvester to 10★", test: () => S.tools.some(t => t.type === "combine" && t.star >= 10) },
     { name: "Combine Season", how: "Have a Combine Harvester on every base", test: () => S.bases > 0 && countType("combine") >= S.bases },
+    { name: "Stack Interchange", how: "Prestige an Interchange to 20★", test: () => S.tools.some(t => t.type === "xchg" && t.star >= 20) },
+    { name: "Harvest Festival", how: "Prestige a Combine Harvester to 15★", test: () => S.tools.some(t => t.type === "combine" && t.star >= 15) },
+    { name: "Gridlock", how: "Have 16 Crossroads, Interchanges and Combines at once", test: () => S.tools.filter(isX).length >= 16 },
+    { name: "Breadbasket", how: "Prestige a Combine Harvester to 20★", test: () => S.tools.some(t => t.type === "combine" && t.star >= 20) },
+    { name: "Amber Waves", how: "Have a Combine Harvester at 15★ on every base", test: () => S.bases > 0 && S.tools.filter(t => t.type === "combine" && t.star >= 15).length >= S.bases },
+    { name: "Golden Harvest", how: "Prestige a Combine Harvester to 25★", test: () => S.tools.some(t => t.type === "combine" && t.star >= 25) },
+    { name: "Grain Elevator", how: "Have a Combine Harvester at 25★ on every base", test: () => S.bases > 0 && S.tools.filter(t => t.type === "combine" && t.star >= 25).length >= S.bases },
   ] },
   { id: "site", name: "Site Survey", boost: "research speed", per: 0.01, key: "res", metric: () => Math.max(0, contractsSigned() - (SITE_FROM - 1)),
-    list: steps([1, 2, 3, 5, 8, 10, 15, 20, 30, 50],
-      ["Site Visit", "Field Trip", "Survey Crew", "Weathered", "Local Knowledge", "Grand Tour", "Frequent Visitor", "Old Hand", "Seen It All", "Planetary Regular"],
+    list: steps([1, 2, 3, 4, 5, 6, 8, 10, 13, 16, 20, 26, 34, 46, 70, 75, 80, 84, 88, 91],
+      ["Site Visit", "Field Trip", "Survey Crew", "Hard Hat", "Weathered", "Seasoned", "Local Knowledge", "Grand Tour", "Frequent Visitor", "Old Hand", "Field Guide", "Seen It All", "Weather Report", "Climate Adjusted", "Planetary Regular", "Atlas", "Cartographer", "Almanac", "Every Forecast", "Solar System Native"],
       "Finish {v} under site conditions", v => v === 1 ? "a contract" : v + " contracts") },
-  { id: "trials", name: "Tech Testing", boost: "contract bonus", per: 0.01, key: "contract", metric: () => Math.min(...TRIALS.map(t => ttBest(t.id))),   // v8: the tier every trial has passed
-    list: steps([1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      ["Beta Tester", "Focus Group", "Lab Coat", "Clipboard", "Field Notes", "Peer Reviewed", "Patent Pending", "Product Recall", "Version 2.0", "Gold Standard"],
-      "Pass tier {v} of all four Tech Testing trials", v => String(v)) },
+  { id: "trials", name: "Tech Testing", boost: "contract bonus", per: 0.01, key: "contract",   // V10: each tier twice: any one trial, then all four
+    list: [["Beta Tester", "Focus Group"], ["Clipboard", "Field Notes"], ["Test Dummy", "Control Sample"], ["Crash Test", "Stress Test"], ["Prototype", "Patent Pending"], ["Version 2.0", "Product Recall"], ["Early Access", "Open Beta"], ["Release Candidate", "Gold Master"], ["Day One Patch", "Quality Assurance"], ["Industry Standard", "Gold Standard"]].flatMap(([a, b], i) => [
+      { name: a, how: `Pass tier ${i + 1} of any Tech Testing trial`, test: () => Math.max(...TRIALS.map(t => ttBest(t.id))) >= i + 1 },
+      { name: b, how: `Pass tier ${i + 1} of all four Tech Testing trials`, test: () => Math.min(...TRIALS.map(t => ttBest(t.id))) >= i + 1 }]) },
   { id: "gag", name: "Water Cooler", boost: "crew XP", per: 0.01, key: "xp", list: [
     { name: "Overheard", how: "Hear the first beat of a running gag", test: () => gagBeats() >= 1 },
     { name: "Small Talk", how: "Hear 6 gag beats", test: () => gagBeats() >= 6 },
@@ -7707,7 +7742,8 @@ function achB(key) {   // the combined boost for one kind: additive inside a ser
 const achHire = () => 2 - achB("hire");
 // achievement speed: every achievement earned (this save's, plus Off the Record on this computer) adds 1% game speed
 const achCount = () => ACH_SERIES.reduce((a, sr) => a + sr.list.filter(achGot).length, 0);
-const achSpeed = () => { const o = offSpeed(); return (1 + 0.01 * achCount() + o.add) * (gagDone("coffee") ? 1.1 : 1) * o.mult; };   // v8: waiting-room chairs, the gym and the lobby
+const achEverN = () => { const t = Date.now(); if (achEverN.t && t - achEverN.t < 1000) return achEverN.v; let n = 0; try { const E = achEver(); for (const id in E) n++; for (const a of ACH_SERIES.find(x => x.secret).list) if (achGot(a)) n++; } catch (e) { n = achCount(); } achEverN.t = t; return (achEverN.v = Math.max(n, achCount())); };   // V10: every achievement ever earned keeps its game speed
+const achSpeed = () => { const o = offSpeed(); return (1 + 0.01 * achEverN() + o.add) * (gagDone("coffee") ? 1.1 : 1) * o.mult; };   // v8: waiting-room chairs, the gym and the lobby
 const gameRate = () => speed * achSpeed();   // game seconds per real second (while running)
 const realOf = (gameSecs) => gameSecs / gameRate();   // how long that is on the clock at the current speed   // −1% per Workforce achievement (achB gives 1 + 0.01·k)
 let achQueue = [], achShowing = false;
@@ -7733,7 +7769,7 @@ function achPop() {
   if (achShowing || !achQueue.length) return;
   const a = achQueue.shift(), el = document.getElementById("achPop"); if (!el) return;
   const sr = a.series, n = sr.list.filter(achGot).length;
-  el.innerHTML = `<div class="ap-k">${sr.secret ? "Secret achievement" : "Achievement"} · ${escHtml(sr.name)} ${n}/10</div><div class="ap-n">${escHtml(a.name)}</div><div class="ap-d">${escHtml(a.how)}</div><div class="ap-b">${escHtml(achBonusText(sr, n))}${sr.secret ? "" : " (this series)"}</div>`;
+  el.innerHTML = `<div class="ap-k">${sr.secret ? "Secret achievement" : "Achievement"} · ${escHtml(sr.name)} ${n}/${sr.list.length}</div><div class="ap-n">${escHtml(a.name)}</div><div class="ap-d">${escHtml(a.how)}</div><div class="ap-b">${escHtml(achBonusText(sr, n))}${sr.secret ? "" : " (this series)"}</div>`;
   el.classList.toggle("top", !!document.getElementById("tapeWrap"));
   el.hidden = false; achShowing = true; requestAnimationFrame(() => el.classList.add("in"));
   const hold = achQueue.length > 3 ? 1800 : 4600;   // a backlog moves along faster
@@ -7759,15 +7795,16 @@ function achBonusText(sr, n) {
 function renderAch() {
   const box = document.getElementById("achBody"); if (!box) return;
   achCheck(false);
+  const ever = achEver();
   const total = ACH_SERIES.reduce((a, sr) => a + sr.list.filter(achGot).length, 0);
   const now = (sr) => !sr.metric ? null : sr.id === "pay" ? fmtMoney(sr.metric()) : sr.id === "wide" ? fmt(sr.metric()) + " cells" : sr.id === "star" ? sr.metric() + "★" : ["flyer", "home", "deep", "fuse", "pb"].includes(sr.id) ? String(sr.metric()) : fmt(sr.metric());
-  box.innerHTML = `<p class="note"><b>${total} of ${ACH_SERIES.length * 10} earned: game speed ×${achSpeed().toFixed(2)}.</b> Every achievement adds 1% game speed, on top of the speed buttons. Each one also adds 1% to its series' boost; boosts add up inside a series and multiply across them. Off the Record stays hidden until you find them, and counts for every save on this computer; the rest belong to this save.</p>` +
+  box.innerHTML = `<p class="note"><b>${total} of ${ACH_SERIES.reduce((a, sr) => a + sr.list.length, 0)} earned this run, ${achEverN()} ever: game speed ×${achSpeed().toFixed(2)}.</b> Game speed counts every achievement this save has ever earned, so it carries through promotions; each series' own boost counts only this run's. Every achievement adds 1% game speed, on top of the speed buttons. Each one also adds 1% to its series' boost; boosts add up inside a series and multiply across them. Off the Record stays hidden until you find them, and counts for every save on this computer; the rest belong to this save.</p>` +
     ACH_SERIES.map(sr => {
       const n = sr.list.filter(achGot).length;
       const bonus = achBonusText(sr, n);
       const m = now(sr);
-      return `<div class="ach-s"><div class="ach-h"><b>${escHtml(sr.name)}</b><span>${n}/10 · ${escHtml(bonus)}${m != null ? ` · best so far ${m}${sr.id === "dig" || sr.id === "rrate" ? "/s" : ""}` : ""}</span></div>
-        <ol class="ach-l">${sr.list.map(a => sr.secret && !achGot(a) ? `<li><b>???</b><span>Off the record. Keep poking around.</span></li>` : `<li class="${achGot(a) ? "got" : ""}"><b>${escHtml(a.name)}</b><span>${escHtml(a.how)}</span></li>`).join("")}</ol></div>`;
+      return `<div class="ach-s"><div class="ach-h"><b>${escHtml(sr.name)}</b><span>${n}/${sr.list.length} · ${escHtml(bonus)}${m != null ? ` · best so far ${m}${sr.id === "dig" || sr.id === "rrate" ? "/s" : ""}` : ""}</span></div>
+        <ol class="ach-l">${sr.list.map(a => sr.secret && !achGot(a) ? `<li><b>???</b><span>Off the record. Keep poking around.</span></li>` : (achGot(a) ? `<li class="got"><b>${escHtml(a.name)}</b><span>${escHtml(a.how)}</span></li>` : ever[a.id] ? `<li class="past" title="Earned in an earlier run: its game speed is kept; earn it again this run for the series boost"><b>${escHtml(a.name)}</b><span>${escHtml(a.how)}</span></li>` : `<li class="unk"><b>???</b><span>???</span></li>`)).join("")}</ol></div>`;
     }).join("");
 }
 
