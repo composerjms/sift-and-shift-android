@@ -7197,7 +7197,14 @@ function renderReadout() {
     } }
   document.getElementById("rProg").textContent = (100 * (1 - remaining() / (D * cellCount()))).toFixed(1) + "%";
   document.getElementById("rRate").textContent = fmt(totalRate);
-  const two = (id, game, real) => { const el = document.getElementById(id), h = game == null ? "—" : `${document.body.classList.contains("phone") ? fmtClock(game) : fmtTime(game)}<small>${real == null ? "" : fmtTime(real) + " real"}</small>`; if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } };
+  const two = (id, game, real) => { const el = document.getElementById(id);
+    if (id === "rEta" && document.body.classList.contains("phone")) {   // Nov 26: phone Finish is the real wait, as m:ss, refreshed once a second so it doesn't flicker
+      const now = performance.now(); if (el.dataset.t && now - +el.dataset.t < 1000 && el.dataset.h) return; el.dataset.t = now;
+      const el2 = S.gameTime - S.mapStart, rem = remaining(), dug = D * cellCount() - rem;   // the map's average rate so far: steadier than the recent rate
+      const g2 = el2 > 3 && dug > 0 ? rem / (dug / el2) : null; real = g2 == null ? null : realOf(g2);
+      const hh = real == null ? "—" : fmtClock(Math.ceil(real)); if (el.dataset.h !== hh) { el.textContent = hh; el.dataset.h = hh; } return;
+    }
+    const h = game == null ? "—" : `${document.body.classList.contains("phone") ? fmtClock(game) : fmtTime(game)}<small>${real == null ? "" : fmtTime(real) + " real"}</small>`; if (el.dataset.h !== h) { el.innerHTML = h; el.dataset.h = h; } };
   two("rTime", S.gameTime - S.mapStart, mapReal);
   const sz = `${W}×${H}`, rs = document.getElementById("rSize"); if (rs.textContent !== sz) rs.textContent = sz;
   const avg = cellN ? cellSum / cellN : lastCellAvg;
