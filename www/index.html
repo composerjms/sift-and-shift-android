@@ -723,6 +723,31 @@ body.phone #paneUp .up .buy { grid-row: 1; grid-column: 3; min-width: 96px; min-
 body:not(.phone) .ph-bases { display: none; }
 body.phone #paneCrew[data-cb="0"] [data-crewbase]:not([data-crewbase="0"]), body.phone #paneCrew[data-cb="1"] [data-crewbase]:not([data-crewbase="1"]),
 body.phone #paneCrew[data-cb="2"] [data-crewbase]:not([data-crewbase="2"]), body.phone #paneCrew[data-cb="3"] [data-crewbase]:not([data-crewbase="3"]) { display: none !important; }
+/* Nov 26: Break room on a portrait phone: arena + stats side by side on top, the shop scrolling underneath */
+body.phone #mgRoom { overflow: hidden; font-size: 13px; padding: calc(8px + env(safe-area-inset-top, 0px)) 10px calc(8px + env(safe-area-inset-bottom, 0px)); }
+body.phone #mgRoom .mg-wrap { height: 100%; display: flex; flex-direction: column; gap: 8px; }
+body.phone #mgRoom .mg-top { gap: 6px 8px; flex: none; }
+body.phone #mgRoom .mg-top p { display: none; }
+body.phone #mgRoom .mg-top h2 { font-size: 1.05rem; flex: 1 1 auto; order: 0; }
+body.phone #mgRoom .mg-back { order: 1; }
+body.phone #mgRoom #mg-speed { order: 2; flex-wrap: nowrap; }
+body.phone #mgRoom .mg-autolbl { order: 3; }
+body.phone #mgRoom .mg-top .seg button, body.phone #mgRoom .mg-back { padding: 6px 9px; min-height: 36px; }
+body.phone #mgRoom .mg-main { flex: none; display: grid; grid-template-columns: 57% minmax(0, 1fr); gap: 8px; align-items: stretch; }
+body.phone #mgRoom .mg-col.a { contain: size; overflow-y: auto; align-content: start; gap: 6px; }
+body.phone #mgRoom .mg-col.a section { padding: 6px 8px; gap: 4px; }
+body.phone #mgRoom .mg-col.a dl { grid-template-columns: minmax(0, 1fr); gap: 0; font-size: 0.8rem; }
+body.phone #mgRoom .mg-col.a dt { font-size: 0.7rem; white-space: normal; }
+body.phone #mgRoom .mg-col.a dd { text-align: left; margin-bottom: 3px; }
+body.phone #mgRoom .mg-col.a .note, body.phone #mgRoom .mg-col.a canvas.spark, body.phone #mgRoom .mg-batt p { display: none; }
+body.phone #mgRoom .mg-batt .big { font-size: 1.2rem; min-width: 0; }
+body.phone #mgRoom section h3 { flex-wrap: wrap; font-size: 0.7rem; }
+body.phone #mgRoom .pips i { width: 14px; height: 9px; }
+.mg-shop { display: none; }
+body.phone #mgRoom .mg-shop { display: grid; flex: 1 1 0; min-height: 0; overflow-y: auto; gap: 8px; align-content: start; }
+body.phone #mgRoom .mg-shop .mg-col.b { display: grid; gap: 8px; }
+body.phone #mgRoom .mounts { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+body.phone #mgRoom .gups { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
 .title-screen { overscroll-behavior: contain; position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 16, 0.96); overflow-y: auto; }
 .title-card select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }   /* a long option no longer stretches the card */
 .title-card { grid-template-columns: minmax(0, 1fr); }   /* the card's single column can never be pushed wider than the card */
@@ -8132,7 +8157,16 @@ function fmtClock(t) {   // Nov 26: phone map time as 14:10 / 1:02:05
   t = Math.max(0, Math.floor(t || 0)); const h = Math.floor(t / 3600), m = Math.floor(t / 60) % 60, sec = t % 60, p = (x) => String(x).padStart(2, "0");
   return h ? `${h}:${p(m)}:${p(sec)}` : `${m}:${p(sec)}`;
 }
+function mgArrange() {   // Nov 26: on a phone the Break room's shop (loadout, attachments, Gleaner upgrades) moves under the arena
+  const room = document.getElementById("mgRoom"); if (!room) return;
+  const wrap = room.querySelector(".mg-wrap"), main = room.querySelector(".mg-main"), b = room.querySelector(".mg-col.b"), gear = room.querySelector(".mg-gear"); if (!wrap || !main || !b || !gear) return;
+  let shop = room.querySelector(".mg-shop"); if (!shop) { shop = document.createElement("div"); shop.className = "mg-shop"; wrap.appendChild(shop); }
+  const ph = document.body.classList.contains("phone");
+  if (ph && b.parentElement !== shop) { shop.appendChild(b); shop.appendChild(gear); }
+  if (!ph && b.parentElement === shop) { main.appendChild(b); wrap.insertBefore(gear, shop); }
+}
 function phUpdate() {
+  mgArrange();
   if (!document.body.classList.contains("phone") || !S) return;
   document.getElementById("pauseBtn").dataset.p = paused ? "1" : "0";
   const sel = document.getElementById("phSpeed");
@@ -8782,14 +8816,18 @@ if (typeof window !== "undefined" && window.Capacitor && window.Capacitor.isNati
     backAt = Date.now(); if (inGame && !paused) setPaused(true); toast("Paused. Press Back again to save and exit.");
   });
 }
+let bgAway = false;
 let lastFrameWall = Date.now();   // v9: wall-clock time of the last frame, so a tab or app that was frozen can be credited on return
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { try { save(); } catch (e) {} return; }
+  const bgStop = !!(window.Capacitor || (window.matchMedia && matchMedia("(pointer: coarse)").matches));   // Nov 26: phones and tablets stop in the background (a PC keeps playing when minimized)
+  if (document.hidden) { try { save(); } catch (e) {} if (bgStop) { try { GameMusic.sleep(); } catch (e) {} bgAway = true; } return; }
+  if (bgAway) { bgAway = false; try { GameMusic.wake(); } catch (e) {} }
   const away = (Date.now() - lastFrameWall) / 1000;   // only time when the game wasn't running at all (a minimized desktop window keeps running)
   if (away > 60 && inGame && S && !S.trial) { try { offlineStart(away); } catch (e) {} }
   lastFrameWall = Date.now(); last = performance.now();
 });
 function frame(now) {
+  if (bgAway) { last = now; requestAnimationFrame(frame); return; }   // Nov 26: in the background on a phone: nothing runs; the time away is credited on return
   lastFrameWall = Date.now();
   const rawDt = Math.max(0, (now - last) / 1000), dt = Math.min(0.25, rawDt); last = now;
   const mainLive = !paused && inGame && !summaryOpen && !mgOpen && !officeBreak;   // Nov 20: Auto speed only judges frames while the main game is actually running
@@ -10032,6 +10070,8 @@ const GameMusic = (() => {
   function stop() { clearInterval(timer); ScoreEngine.stop(); st = null; if (ctx) { bus.gain.cancelScheduledValues(ctx.currentTime); bus.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.15); } tell(); }
   function tell() { for (const f of listeners) try { f(); } catch (e) {} }
   return {
+    sleep() { try { if (ctx && ctx.state === "running") ctx.suspend(); } catch (e) {} },   // Nov 26: the app went to the background
+    wake() { try { if (ctx && ctx.state === "suspended" && on) ctx.resume(); } catch (e) {} },
     tracks: TRACKS,
     get rotation() { return GAMEPLAY.slice(); },
     get rotationDefault() { return GAMEPLAY_DEFAULT.slice(); },
