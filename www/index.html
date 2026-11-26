@@ -758,6 +758,11 @@ body.phone #mgRoom .mounts { grid-template-columns: repeat(auto-fill, minmax(120
 body.phone #mgRoom .gups { grid-template-columns: minmax(0, 1fr); }
 body.phone #mgRoom .gup .nm, body.phone #mgRoom .gup .ds { white-space: normal; }
 body.phone #mgRoom .gup button { min-height: 36px; }
+/* Nov 26: touch screens: tap (or press and hold a button) for a tooltip */
+body:not(.touch) .t-tap, body.touch .t-hover { display: none; }
+#tipBubble { position: fixed; z-index: 3000; max-width: min(300px, calc(100vw - 24px)); padding: 8px 11px; border-radius: 8px; background: #232832; border: 1px solid var(--accent); color: var(--fg); font: 0.85rem/1.4 var(--f-body); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5); white-space: pre-line; pointer-events: none; }
+#tipBubble[hidden] { display: none; }
+body.touch [title] { -webkit-touch-callout: none; }
 .title-screen { overscroll-behavior: contain; position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(10, 12, 16, 0.96); overflow-y: auto; }
 .title-card select { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }   /* a long option no longer stretches the card */
 .title-card { grid-template-columns: minmax(0, 1fr); }   /* the card's single column can never be pushed wider than the card */
@@ -1161,7 +1166,7 @@ THE SOFTWARE.</pre></details>
     <div><span class="lbl"><span class="ph-hide">Map time</span><span class="ph-only">Time</span></span><span class="val" id="rTime">0s</span></div>
     <div><span class="lbl">Map size</span><span class="val" id="rSize">10×10</span></div>
     <div><span class="lbl" title="Average time from a cell's first dig to clean, over cells finished this map (last map's average until one finishes)">Avg cell time</span><span class="val" id="rCellT">—</span></div>
-    <div><span class="lbl" title="Remaining dirt divided by the crew's recent dirt per second. Does not include the walk home at the end."><span class="ph-hide">Projected finish</span><span class="ph-only">Finish</span></span><span class="val" id="rEta">—</span></div>
+    <div><span class="lbl" title="Dirt left divided by this map's average dig rate so far, so it's steady but starts a little high. Does not include the walk home at the end."><span class="ph-hide">Projected finish</span><span class="ph-only">Finish</span></span><span class="val" id="rEta">—</span></div>
   </section>
   <section class="dps" aria-label="Dig per second by tool type, by phase">
     <div class="dps-h"><span id="dpsTitle">Dig / sec by type</span><div class="dps-key" id="dpsKey"></div><div class="seg" id="dpsSeg" role="group" aria-label="Maps to average"></div></div>
@@ -4180,7 +4185,7 @@ function renderPersonalBox() {
     <p class="note">The order each crew type spends skill points in (one per level). Every skill still gets maxed before the next prestige, so this changes which ones come first after each star, not where a tool ends up.</p>
     <div class="pskills">${skillRows}</div>
     <h4 class="section-h">Perks</h4>
-    <p class="note">Perk points come at levels 5 and 10, and again after every prestige. Tick the perks you want and set their order; unticked perks are never bought. Hover a name for what it does.</p>
+    <p class="note">Perk points come at levels 5 and 10, and again after every prestige. Tick the perks you want and set their order; unticked perks are never bought. <span class="t-hover">Hover</span><span class="t-tap">Tap</span> a name for what it does.</p>
     <div class="pskills">${perkRows}</div>
     <h4 class="section-h">Your defaults</h4>
     <p class="note">Save up to ${PRESET_N} Personal setups on this computer (weights, research, skill order and perks) and load any of them into any save. A new game with autoplay can start from one too. Saving into a used slot replaces it.</p>
@@ -5054,7 +5059,7 @@ function multTable(share) {
     }).join("");
     return `<tr><th scope="row">${r.label}</th>${tds}<td class="n mt-tot">${fmtX(tot)}</td></tr>`;
   }).join("");
-  return `${share ? `<p class="note">How much of each total comes from each source, on a log scale (a source at 50% supplies half the total's doublings).</p>` : `<p class="note">Everything that applies to the whole crew, by where it comes from. Each row multiplies across to its total. Per-unit parts (stars, skills, synergy) are on each unit's card. Hover a cell for what's in it.</p>`}
+  return `${share ? `<p class="note">How much of each total comes from each source, on a log scale (a source at 50% supplies half the total's doublings).</p>` : `<p class="note">Everything that applies to the whole crew, by where it comes from. Each row multiplies across to its total. Per-unit parts (stars, skills, synergy) are on each unit's card. <span class="t-hover">Hover</span><span class="t-tap">Tap</span> a cell for what's in it.</p>`}
     <div class="tblwrap"><table class="st mt">${`<thead>${head}</thead>`}<tbody>${body}</tbody></table></div>
     ${share ? "" : `<p class="note">— nothing in that column can change the stat. <span class="mt-idle">×1.00</span> in grey: something there can, but you haven't got it yet. Sale price is dollars per unit of dirt; tank size is before canisters.</p>`}`;
 }
@@ -8109,6 +8114,44 @@ function wire() {
   }));
   wirePhone(setMenu);
 }
+// ---------- Nov 26: tooltips on touch screens ----------
+// Tap anything with a tooltip (a label, a cell, a badge) to see it; press and hold a button for half a second to see its tooltip
+// without pressing it. The 3D board keeps its own touch controls.
+(function touchTips() {
+  const coarse = window.matchMedia && matchMedia("(pointer: coarse)");
+  const setTouch = () => document.body.classList.toggle("touch", !!(coarse && coarse.matches));
+  setTouch(); if (coarse && coarse.addEventListener) coarse.addEventListener("change", setTouch);
+  const tip = document.createElement("div"); tip.id = "tipBubble"; tip.hidden = true; tip.setAttribute("role", "tooltip"); document.body.appendChild(tip);
+  let hideT = 0, holdT = 0, held = false, sx = 0, sy = 0, shownFor = null;
+  const skip = (el) => !el || el.closest("#view3d, canvas, #tipBubble");
+  const ACT = "button, a, input, select, textarea, label, summary, [data-buy], [data-act], [role=button], [role=tab]";
+  const show = (el) => {
+    const t = el.getAttribute("title"); if (!t) return false;
+    tip.textContent = t; tip.hidden = false; shownFor = el;
+    const r = el.getBoundingClientRect(), z = curZoom || 1, w = tip.offsetWidth, h = tip.offsetHeight, vw = window.innerWidth / z, vh = window.innerHeight / z;
+    let x = r.left + r.width / 2 - w / 2, y = r.top - h - 8; if (y < 8) y = r.bottom + 8; if (y + h > vh - 8) y = Math.max(8, vh - h - 8);
+    x = Math.max(8, Math.min(vw - w - 8, x)); tip.style.left = x + "px"; tip.style.top = y + "px";
+    clearTimeout(hideT); hideT = setTimeout(hide, 7000); return true;
+  };
+  const hide = () => { tip.hidden = true; shownFor = null; clearTimeout(hideT); };
+  document.addEventListener("touchstart", (e) => {
+    held = false; clearTimeout(holdT); if (!document.body.classList.contains("touch")) return;
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY;
+    const el = e.target.closest && e.target.closest("[title]"); if (skip(e.target) || !el || !el.matches(ACT)) return;
+    holdT = setTimeout(() => { if (show(el)) held = true; }, 500);
+  }, { passive: true, capture: true });
+  document.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10) clearTimeout(holdT); }, { passive: true, capture: true });
+  document.addEventListener("touchend", () => clearTimeout(holdT), { passive: true, capture: true });
+  document.addEventListener("contextmenu", (e) => { if (held) e.preventDefault(); }, true);
+  document.addEventListener("click", (e) => {
+    if (!document.body.classList.contains("touch")) return;
+    if (held) { held = false; e.preventDefault(); e.stopPropagation(); return; }   // a press-and-hold showed the tooltip: don't also press the button
+    const el = !skip(e.target) && e.target.closest && e.target.closest("[title]");
+    if (el && !e.target.closest(ACT) && !el.matches(ACT)) { if (shownFor === el && !tip.hidden) hide(); else show(el); return; }
+    if (!tip.hidden) hide();
+  }, true);
+  window.addEventListener("scroll", hide, true);
+})();
 // ---------- Nov 26: portrait phone layout ----------
 let phoneView = "map";
 function setPhoneView(v) {
