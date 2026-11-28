@@ -1619,8 +1619,9 @@ const AUTO_OPTS = {
   pdays:     { label: "Personal days", info: "Personal days come one per contract once the Meaner Gleaner unlocks: triple spill and charge, no cap, but they start over at each promotion. With breaks: whenever autoplay takes time off (unseen or on screen), it plays up to this many personal days first, then jumps over to the banked vacation runs; any left over wait for the next break (and are lost at promotion). Unseen breaks pause the main game while each run plays out, so a big number there means a longer pause. Has no effect if Meaner Gleaner breaks are left to you.", opts: [["b1", "With breaks: up to 1 personal day first, then vacation"], ["b2", "With breaks: up to 2 personal days first, then vacation"], ["breaks", "With breaks: up to 3 personal days first, then vacation"], ["b5", "With breaks: up to 5 personal days first, then vacation"], ["b10", "With breaks: up to 10 personal days first, then vacation"], ["b20", "With breaks: up to 20 personal days first, then vacation"], ["ball", "With breaks: all personal days first, then vacation"], ["never", "Never: leave them for me to play"]] },
   contracts: { label: "New contracts", info: "When it signs a new contract (a fresh start with permanent bonuses). It signs immediately, mid-map: it does not wait for the current map to finish.", opts: [["auto", "When the main dig slows: opening map +10%, then tighter each map (5, 8, 11 points…)"], ["asap", "Immediately, as soon as one is available"], ["never", "Never: you sign them"]] },
   promote:   { label: "Promotions (testing)", info: "Whether autoplay takes a promotion for you once this run's contract cap is reached (25 the first time, then 5 more each promotion). The run waits in the Office until you start the next one. Off by default. Overtime: maps dug past the cap add promotion points (+7% at 10 maps, +11% at 20, up to +25% at about 112), so the later choices keep digging first.", opts: [["manual", "Never: I'll promote myself in the Office"], ["asap", "As soon as one is available"], ["ot20", "After 20 maps of overtime (about +11%)"], ["ot50", "After 50 maps of overtime (about +18%)"], ["otmax", "At full overtime (+25%)"]] },
+  office:    { label: "Office between runs (testing)", info: "What autoplay does in the Office after a promotion. Buy cheapest: uses any room keys first (lowest floor first), then buys one piece in every open room that has none, then keeps buying the cheapest piece anywhere until the points run out, and starts the next run. If a room's first piece can't be afforded yet, it saves the points for it and starts the run.", opts: [["manual", "Leave it to me: the Office waits for me"], ["cheap", "Buy cheapest: open rooms, one piece in each, then cheapest; then start the next run"]] },
 };
-const autoDefaults = () => ({ mg: "manual", pdays: "breaks", canFirst: false, brain: "planner", style: "balanced", glean: "busy", layout: "type", hiring: "priced", rakes: "best", research: "lowest", summary: "stop", contracts: "auto", promote: "manual" });
+const autoDefaults = () => ({ mg: "manual", pdays: "breaks", canFirst: false, brain: "planner", style: "balanced", glean: "busy", layout: "type", hiring: "priced", rakes: "best", research: "lowest", summary: "stop", contracts: "auto", promote: "manual", office: "manual" });
 const AP = (k) => !deskLocked(k) && S.auto && S.auto[k] !== undefined ? S.auto[k] : autoDefaults()[k];   // v8: a setting the Front desk hasn't opened plays at its default
 function newState() {
   return {
@@ -10609,7 +10610,7 @@ function offSpeed() {   // the lobby's share of game speed: waiting-room chairs 
 // ---- autoplay settings and the Front desk ----
 // With BAL.deskGate on, each Front desk tier opens a group of autoplay settings (locked ones play at the defaults).
 // It's off while we test, so for now the desk's tiers decide what a promotion keeps.
-const DESK_GATE = { brain: 1, style: 1, glean: 1, layout: 1, hiring: 1, rakes: 1, canFirst: 1, research: 2, contracts: 3, summary: 3, promote: 3, mg: 4, pdays: 4 };
+const DESK_GATE = { brain: 1, style: 1, glean: 1, layout: 1, hiring: 1, rakes: 1, canFirst: 1, research: 2, contracts: 3, summary: 3, promote: 3, office: 3, mg: 4, pdays: 4 };
 const deskLocked = (k) => !!(BAL.deskGate && DESK_GATE[k] && ofT("lobby.desk") < DESK_GATE[k]);
 // ---- the start of each contract (signing one, or a promotion) ----
 function officeRunStart() {
@@ -10682,6 +10683,31 @@ function officeToolsInit() {   // v9: save code and this run's log from the Offi
     downloadText(keys.length === 1 ? keys[0] : `slot${curSlot}-${supSlug()}-p${top}-all-days.log`, text);
   };
 }
+// Nov 27 (testing): autoplay's Office: open rooms with any keys, one piece in every open room, then the cheapest piece
+// until the points run out, then start the next run
+function autoOffice() {
+  const O = officeS(); if (!O || !O.between || !autoplay || AP("office") !== "cheap" || autoOffice.busy) return;
+  autoOffice.busy = true;
+  try {
+    const floor = deskFloor(O);
+    for (const r of ROOMS.filter(r => r.id !== "lobby" && !r.soon && r.floor <= floor && !O.opened[r.id]).sort((a, b) => a.floor - b.floor)) {
+      if (keysLeft(O) <= 0) break;
+      O.opened[r.id] = 1; O.v++; logEv("office", { what: "key " + r.id, auto: 1 });
+    }
+    let waiting = false;
+    for (const r of ROOMS) {
+      if (r.soon || !roomOpen(r.id) || r.pieces.some(p => (O.furn[p.key] || 0) > 0)) continue;
+      const opts = r.pieces.filter(p => !(p.need && O.best < p.need) && (O.furn[p.key] || 0) < p.tiers.length).sort((a, b) => pieceCost(a, O.furn[a.key] || 0) - pieceCost(b, O.furn[b.key] || 0));
+      if (!opts.length) continue;
+      if (canBuy(opts[0]) === true) buyPiece(opts[0].key); else waiting = true;
+    }
+    if (!waiting) for (let n = 0; n < 500; n++) { const ch = cheapestPiece(); if (!ch || canBuy(ch.p) !== true) break; buyPiece(ch.p.key); }
+    save();
+    toast(`Autoplay furnished the Office${waiting ? " (saving points for a room's first piece)" : ""} and started the next run.`);
+    officeStartRun();
+  } finally { autoOffice.busy = false; }
+}
+setInterval(() => { try { autoOffice(); } catch (e) {} }, 2000);
 function officeStartRun() {   // leave the Office: the new run's contract 1 begins with the furniture as it now stands
   const O = officeS(); if (!O.between) return;
   delete O.between; O.v++;
