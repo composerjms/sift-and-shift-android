@@ -678,7 +678,8 @@ body.phone .controls { flex-wrap: nowrap; gap: 6px; width: 100%; }
 body.phone .controls .btn { min-height: 40px; padding: 0 10px; white-space: nowrap; }
 body.phone #menuBtn { margin-left: auto; }
 .ph-speed { min-height: 40px; min-width: 92px; padding: 0 8px; background: var(--panel); color: var(--accent); border: 1px solid var(--line); border-radius: 8px; font-family: var(--f-mono); font-size: 0.95rem; }
-body.phone .readout { flex: none; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 0; }
+body.phone .readout { flex: none; grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)) !important; gap: 0; }
+body.phone .readout > div:has(#rMap), body.phone #drawOffNote { display: none !important; }
 body.phone .readout > div { padding: 5px 2px; min-width: 0; }
 body.phone .readout > div:has(#rDust), body.phone .readout > div:has(#rCarry), body.phone .readout > div:has(#rDepth), body.phone .readout > div:has(#rRate), body.phone .readout > div:has(#rSize), body.phone .readout > div:has(#rCellT) { display: none !important; }
 body.phone .readout .lbl { font-size: 0.6rem; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1157,7 +1158,7 @@ THE SOFTWARE.</pre></details>
   </section>
 
   <section class="readout" aria-label="Status">
-    <div class="ph-only"><span class="lbl">Contract</span><span class="val" id="rCon">1</span></div>
+    <div class="ph-only ph-pcm"><span class="lbl" title="Promotion – contract – map">Prom-Cont-Map</span><span class="val" id="rCon">0-1-1</span></div>
     <div><span class="lbl">Money</span><span class="val big" id="rDust">0</span></div>
     <div><span class="lbl">Dirt carried</span><span class="val" id="rCarry">0</span></div>
     <div><span class="lbl">Map</span><span class="val" id="rMap">1</span></div>
@@ -7230,7 +7231,7 @@ function renderReadout() {
   const D = depth();
   document.getElementById("rDust").textContent = fmtMoney(S.money);
   document.getElementById("rCarry").textContent = fmt(S.tools.reduce((a, t) => a + t.carry, 0));
-  document.getElementById("rMap").textContent = S.map; { const rc = document.getElementById("rCon"); if (rc) rc.textContent = S.contract ? S.contract.n + 1 : 1; }
+  document.getElementById("rMap").textContent = S.map; { const rc = document.getElementById("rCon"); if (rc) { const t = `${(S.office && S.office.promos) || 0}-${S.contract ? S.contract.n + 1 : 1}-${S.map}`; if (rc.textContent !== t) rc.textContent = t; } }
   if (S.trial) document.getElementById("subLine").textContent = `Tech Testing · ${TT_BY[S.trial.id].name} on ${siteName(ttPlanet())} · crew ×${statMult().toFixed(2)} · no site conditions while testing · your contract ${S.contract.n + 1} is paused`;
   else if (S.contract.n > 0) document.getElementById("subLine").textContent = `Contract ${S.contract.n + 1} · ${capFirst(siteName(S.contract.n))} · dirt ×${fmtX(S.contract.dustMult)} · crew ×${statMult().toFixed(2)} · ${perBase()} slots per base${siteQuirk() ? ` · ${siteQuirk().name}: ${siteQuirk().desc}` : ""}`;
   else { const el = document.getElementById("subLine"), t = "Contract 1 · The Moon · Map n is n² layers deep, plus 2% more per map (map 50 is twice as deep). The board starts at 10×10 and can grow."; if (el.textContent !== t) el.textContent = t; }   // Nov 17: contract 1 after a promotion (or a new game) resets the line too
